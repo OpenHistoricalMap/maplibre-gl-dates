@@ -7,7 +7,7 @@
     "build": "esbuild index.js --bundle --outdir=dist",
     "clean": "shx rm -rf dist build",
     "start": "shx cp -r example dist && open 'http://127.0.0.1:8000/example/#map=15/29.9599/-90.0676&date=1900-01-01' && esbuild index.js --bundle --outdir=dist --servedir=dist --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --import ./test/setup.mjs --test 'index.spec.mjs'"
   },
   "repository": {
     "type": "git",

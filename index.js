@@ -100,8 +100,14 @@ function constrainFilterByDate(filter, decimalYear) {
   return dateFilter;
 }
 
-if (window.maplibregl) {
+if (typeof window !== 'undefined' && 'maplibregl' in window) {
   maplibregl.Map.prototype.filterByDate = function (date) {
     filterByDate(this, date);
+  };
+} else if (typeof module !== 'undefined') {
+  module.exports = {
+    filterByDate: filterByDate,
+    decimalYearFromDate: decimalYearFromDate,
+    dateFromISODate: dateFromISODate,
   };
 }
