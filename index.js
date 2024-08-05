@@ -109,5 +109,6 @@ if (typeof window !== 'undefined' && 'maplibregl' in window) {
     filterByDate: filterByDate,
     decimalYearFromDate: decimalYearFromDate,
     dateFromISODate: dateFromISODate,
+    constrainFilterByDate: constrainFilterByDate,
   };
 }
