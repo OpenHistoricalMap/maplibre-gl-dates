@@ -6,7 +6,7 @@ This is a plugin for [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js
 
 This plugin requires [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above.
 
-This plugin only supports the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) in the MapLibre Style Specification. It does not yet support expression-based filters, but a style layer may set a paint or layout property to an expression without any problem.
+This plugin is able to manipulate both the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the newer [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) defined in the MapLibre Style Specification.
 
 The stylesheet must be backed by a vector tileset, such as [OpenHistoricalMap’s official vector tileset](https://wiki.openstreetmap.org/wiki/OpenHistoricalMap/Reuse#Vector_tiles_and_stylesheets), that includes the following properties in each tile layer:
 

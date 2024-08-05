@@ -5,7 +5,9 @@ import { featureFilter } from '@maplibre/maplibre-gl-style-spec';
 import {
   dateFromISODate,
   decimalYearFromDate,
-  constrainFilterByDate,
+  constrainLegacyFilterByDate,
+  constrainExpressionFilterByDate,
+  isLegacyFilter,
 } from './index.js';
 
 describe('dateFromISODate', () => {
@@ -39,10 +41,63 @@ describe('decimalYearFromDate', () => {
   });
 });
 
-describe('constrainFilterByDate', () => {
+describe('isLegacyFilter', () => {
+  it('should reject expression primitives', () => {
+    assert.ok(!isLegacyFilter(true));
+    assert.ok(!isLegacyFilter(false));
+    assert.ok(!isLegacyFilter(3.1415));
+    assert.ok(!isLegacyFilter(['pi']));
+  });
+
+  it('should accept legacy-only operators', () => {
+    assert.ok(isLegacyFilter(['!has', 'end_date']));
+    assert.ok(isLegacyFilter(['!in', 'class', 'primary', 'secondary', 'tertiary']));
+    assert.ok(isLegacyFilter(['none', ['has', 'start_date'], ['has', 'end_date']]));
+  });
+
+  it('should reject expression-only operators', () => {
+    assert.ok(!isLegacyFilter(['coalesce', false, true]));
+    const variable = 'maplibre_gl_dates__decimalYear';
+    assert.ok(!isLegacyFilter(['let', variable, 2013, ['var', variable]]));
+  });
+
+  it('should accept special keys', () => {
+    assert.ok(isLegacyFilter(['has', '$id']));
+    assert.ok(isLegacyFilter(['has', '$type']));
+    assert.ok(isLegacyFilter(['in', '$id', 0, 1, 2, 3]));
+    assert.ok(isLegacyFilter(['in', '$type', 'Point', 'LineString']));
+  });
+
+  it('should reject non-key first arguments', () => {
+    assert.ok(!isLegacyFilter(['==', ['get', 'name'], 'North']));
+    assert.ok(!isLegacyFilter(['in', ['get', 'name'], 'North South East West']));
+  });
+
+  it('should accept inlined `in` values', () => {
+    assert.ok(isLegacyFilter(['in', 'class', 'primary', 'secondary', 'tertiary']));
+    assert.ok(isLegacyFilter(['in', 'class', 'primary']));
+    assert.ok(!isLegacyFilter(['in', 'class', ['primary']]));
+  });
+
+  it('should accept string-string comparisons', () => {
+    assert.ok(isLegacyFilter(['==', 'name', 'North']));
+    assert.ok(isLegacyFilter(['in', 'name', 'North']));
+  });
+
+  it('should accept legacy combining filters', () => {
+    assert.ok(!isLegacyFilter(['any', true, false]));
+    assert.ok(!isLegacyFilter(['all', true, false]));
+    assert.ok(!isLegacyFilter(['any', ['has', 'start_date'], ['has', 'end_date']]));
+    assert.ok(!isLegacyFilter(['all', ['has', 'start_date'], ['has', 'end_date']]));
+    assert.ok(isLegacyFilter(['any', ['==', '$type', 'Polygon'], ['has', 'end_date']]));
+    assert.ok(isLegacyFilter(['all', ['==', '$type', 'Polygon'], ['has', 'end_date']]));
+  });
+});
+
+describe('constrainLegacyFilterByDate', () => {
   it('should upgrade top-level non-combining filter', () => {
     let original = ['in', 'class', 'primary', 'secondary', 'tertiary'];
-    let upgraded = constrainFilterByDate(original, 2013);
+    let upgraded = constrainLegacyFilterByDate(original, 2013);
     assert.equal(upgraded.length, 4);
     assert.equal(upgraded[0], 'all');
     assert.deepEqual(upgraded[3], original);
@@ -51,8 +106,8 @@ describe('constrainFilterByDate', () => {
 
   it('should update already upgraded filter', () => {
     let original = ['in', 'class', 'primary', 'secondary', 'tertiary'];
-    let upgraded = constrainFilterByDate(original, 2013);
-    let updated = constrainFilterByDate(upgraded, 2014);
+    let upgraded = constrainLegacyFilterByDate(original, 2013);
+    let updated = constrainLegacyFilterByDate(upgraded, 2014);
     assert.equal(upgraded.length, updated.length);
     assert.doesNotMatch(JSON.stringify(updated), /2013/);
     assert.match(JSON.stringify(updated), /2014/);
@@ -60,7 +115,58 @@ describe('constrainFilterByDate', () => {
 
   it('should include features matching the selected date', () => {
     let decimalYear = 2013.5;
-    let upgraded = constrainFilterByDate(['has', 'building'], decimalYear);
+    let upgraded = constrainLegacyFilterByDate(['has', 'building'], decimalYear);
+
+    let includesFeature = (start, end) => {
+      let properties = { building: 'yes' };
+      if (typeof start !== 'undefined') {
+        properties.start_decdate = start;
+      }
+      if (typeof end !== 'undefined') {
+        properties.end_decdate = end;
+      }
+      return featureFilter(upgraded).filter(undefined, { properties: properties });
+    };
+
+    let dayDelta = 1/365;
+    assert.ok(includesFeature(undefined, undefined));
+    assert.ok(!includesFeature(undefined, decimalYear - dayDelta))
+    assert.ok(includesFeature(decimalYear - dayDelta, undefined))
+    assert.ok(includesFeature(undefined, decimalYear + dayDelta))
+    assert.ok(!includesFeature(decimalYear + dayDelta, undefined))
+  });
+});
+
+describe('constrainExpressionFilterByDate', () => {
+  it('should upgrade non-variable-binding filter', () => {
+    let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
+    let upgraded = constrainExpressionFilterByDate(original, 2013);
+    assert.equal(upgraded.length, 4);
+    assert.equal(upgraded[0], 'let');
+    let variable = 'maplibre_gl_dates__decimalYear';
+    assert.equal(upgraded[1], variable);
+    assert.equal(upgraded[2], 2013);
+    assert.equal(upgraded[3].length, 4);
+    assert.equal(upgraded[3][0], 'all');
+    assert.match(JSON.stringify(upgraded[3][1]), new RegExp(variable));
+    assert.match(JSON.stringify(upgraded[3][2]), new RegExp(variable));
+    assert.deepEqual(upgraded[3][3], original);
+  });
+
+  it('should update already upgraded filter', () => {
+    let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
+    let upgraded = constrainExpressionFilterByDate(original, 2013);
+    let updated = constrainExpressionFilterByDate(upgraded, 2014);
+    assert.equal(upgraded.length, updated.length);
+    assert.equal(updated[0], 'let');
+    assert.equal(upgraded[1], upgraded[1]);
+    assert.equal(updated[2], 2014);
+    assert.deepEqual(upgraded[3], updated[3]);
+  });
+
+  it('should include features matching the selected date', () => {
+    let decimalYear = 2013.5;
+    let upgraded = constrainExpressionFilterByDate(['has', 'building'], decimalYear);
 
     let includesFeature = (start, end) => {
       let properties = { building: 'yes' };
