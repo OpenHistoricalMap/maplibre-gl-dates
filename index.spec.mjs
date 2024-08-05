@@ -159,7 +159,7 @@ describe('constrainExpressionFilterByDate', () => {
     let updated = constrainExpressionFilterByDate(upgraded, 2014);
     assert.equal(upgraded.length, updated.length);
     assert.equal(updated[0], 'let');
-    assert.equal(upgraded[1], upgraded[1]);
+    assert.equal(upgraded[1], updated[1]);
     assert.equal(updated[2], 2014);
     assert.deepEqual(upgraded[3], updated[3]);
   });
