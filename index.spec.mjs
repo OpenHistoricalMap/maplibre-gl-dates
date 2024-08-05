@@ -97,7 +97,7 @@ describe('isLegacyFilter', () => {
 describe('constrainLegacyFilterByDate', () => {
   it('should upgrade top-level non-combining filter', () => {
     let original = ['in', 'class', 'primary', 'secondary', 'tertiary'];
-    let upgraded = constrainLegacyFilterByDate(original, 2013);
+    let upgraded = constrainLegacyFilterByDate(structuredClone(original), 2013);
     assert.equal(upgraded.length, 4);
     assert.equal(upgraded[0], 'all');
     assert.deepEqual(upgraded[3], original);
@@ -106,8 +106,8 @@ describe('constrainLegacyFilterByDate', () => {
 
   it('should update already upgraded filter', () => {
     let original = ['in', 'class', 'primary', 'secondary', 'tertiary'];
-    let upgraded = constrainLegacyFilterByDate(original, 2013);
-    let updated = constrainLegacyFilterByDate(upgraded, 2014);
+    let upgraded = constrainLegacyFilterByDate(structuredClone(original), 2013);
+    let updated = constrainLegacyFilterByDate(structuredClone(upgraded), 2014);
     assert.equal(upgraded.length, updated.length);
     assert.doesNotMatch(JSON.stringify(updated), /2013/);
     assert.match(JSON.stringify(updated), /2014/);
@@ -140,7 +140,7 @@ describe('constrainLegacyFilterByDate', () => {
 describe('constrainExpressionFilterByDate', () => {
   it('should upgrade non-variable-binding filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainExpressionFilterByDate(original, 2013);
+    let upgraded = constrainExpressionFilterByDate(structuredClone(original), 2013);
     assert.equal(upgraded.length, 4);
     assert.equal(upgraded[0], 'let');
     let variable = 'maplibre_gl_dates__decimalYear';
@@ -155,20 +155,20 @@ describe('constrainExpressionFilterByDate', () => {
 
   it('should update variable-binding filter', () => {
     let original = ['let', 'language', 'sux', ['get', ['+', 'name', ['var', 'language']]]];
-    let updated = constrainExpressionFilterByDate(original, 2014);
-    assert.equal(original.length, updated.length);
+    let updated = constrainExpressionFilterByDate(structuredClone(original), 2014);
+    assert.equal(original.length + 2, updated.length);
     assert.equal(updated[0], 'let');
     assert.equal(original[1], updated[1]);
     assert.equal(original[2], updated[2]);
-    assert.equal(original[3], updated[3]);
+    assert.equal(updated[3], 'maplibre_gl_dates__decimalYear');
     assert.equal(updated[4], 2014);
-    assert.deepEqual(original[5], updated[5]);
+    assert.deepEqual(original[3], updated[5]);
   });
 
   it('should update already upgraded filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainExpressionFilterByDate(original, 2013);
-    let updated = constrainExpressionFilterByDate(upgraded, 2014);
+    let upgraded = constrainExpressionFilterByDate(structuredClone(original), 2013);
+    let updated = constrainExpressionFilterByDate(structuredClone(upgraded), 2014);
     assert.equal(upgraded.length, updated.length);
     assert.equal(updated[0], 'let');
     assert.equal(upgraded[1], updated[1]);
