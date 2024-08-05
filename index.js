@@ -135,12 +135,18 @@ function constrainLegacyFilterByDate(filter, decimalYear) {
  * @param decimalYear The decimal year to filter by.
  * @returns A filter similar to the given filter, but with added conditions
  *	that require the feature to coincide with the decimal year. If the filter
- *  previously been passed into this function, it merely updates a variable.
+ *  previously been passed into this function, or if it already has a `let`
+ *  expression at the top level, it merely updates a variable.
  */
 function constrainExpressionFilterByDate(filter, decimalYear) {
   const decimalYearVariable = `${variablePrefix}__decimalYear`;
-  if (filter[0] === 'let' && filter[1] === decimalYearVariable) {
-    filter[2] = decimalYear;
+  if (filter[0] === 'let') {
+    let variableIndex = filter.indexOf(decimalYearVariable);
+    if (variableIndex !== -1 && variableIndex % 2 === 1) {
+      filter[variableIndex + 1] = decimalYear;
+    } else {
+      filter.splice(-1, 0, decimalYearVariable, decimalYear);
+    }
     return filter;
   }
 

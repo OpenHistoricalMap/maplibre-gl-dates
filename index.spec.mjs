@@ -153,6 +153,18 @@ describe('constrainExpressionFilterByDate', () => {
     assert.deepEqual(upgraded[3][3], original);
   });
 
+  it('should update variable-binding filter', () => {
+    let original = ['let', 'language', 'sux', ['get', ['+', 'name', ['var', 'language']]]];
+    let updated = constrainExpressionFilterByDate(original, 2014);
+    assert.equal(original.length, updated.length);
+    assert.equal(updated[0], 'let');
+    assert.equal(original[1], updated[1]);
+    assert.equal(original[2], updated[2]);
+    assert.equal(original[3], updated[3]);
+    assert.equal(updated[4], 2014);
+    assert.deepEqual(original[5], updated[5]);
+  });
+
   it('should update already upgraded filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
     let upgraded = constrainExpressionFilterByDate(original, 2013);
