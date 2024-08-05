@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { featureFilter } from '@maplibre/maplibre-gl-style-spec';
 
 import {
   dateFromISODate,
@@ -55,5 +56,28 @@ describe('constrainFilterByDate', () => {
     assert.equal(upgraded.length, updated.length);
     assert.doesNotMatch(JSON.stringify(updated), /2013/);
     assert.match(JSON.stringify(updated), /2014/);
+  });
+
+  it('should include features matching the selected date', () => {
+    let decimalYear = 2013.5;
+    let upgraded = constrainFilterByDate(['has', 'building'], decimalYear);
+
+    let includesFeature = (start, end) => {
+      let properties = { building: 'yes' };
+      if (typeof start !== 'undefined') {
+        properties.start_decdate = start;
+      }
+      if (typeof end !== 'undefined') {
+        properties.end_decdate = end;
+      }
+      return featureFilter(upgraded).filter(undefined, { properties: properties });
+    };
+
+    let dayDelta = 1/365;
+    assert.ok(includesFeature(undefined, undefined));
+    assert.ok(!includesFeature(undefined, decimalYear - dayDelta))
+    assert.ok(includesFeature(decimalYear - dayDelta, undefined))
+    assert.ok(includesFeature(undefined, decimalYear + dayDelta))
+    assert.ok(!includesFeature(decimalYear + dayDelta, undefined))
   });
 });
