@@ -8,11 +8,11 @@ function filterByDate(map, date) {
   if (typeof date === 'string') {
     date = dateFromISODate(date);
   }
-  var decimalYear = decimalYearFromDate(date);
+  let decimalYear = decimalYearFromDate(date);
   map.getStyle().layers.map(function (layer) {
     if (!('source-layer' in layer)) return;
 
-    var filter = constrainFilterByDate(map.getFilter(layer.id), decimalYear);
+    let filter = constrainFilterByDate(map.getFilter(layer.id), decimalYear);
     map.setFilter(layer.id, filter);
   });
 }
@@ -26,8 +26,8 @@ function filterByDate(map, date) {
 function decimalYearFromDate(date) {
   // Add the year and the fraction of the date between two New Year’s Days.
   let year = date.getUTCFullYear();
-  var nextNewYear = dateFromUTC(year + 1, 0, 1).getTime();
-  var lastNewYear = dateFromUTC(year, 0, 1).getTime();
+  let nextNewYear = dateFromUTC(year + 1, 0, 1).getTime();
+  let lastNewYear = dateFromUTC(year, 0, 1).getTime();
   return year + (date.getTime() - lastNewYear) / (nextNewYear - lastNewYear);
 }
 
@@ -42,14 +42,14 @@ function dateFromISODate(isoDate) {
   // to be a variable number of digits or negative, unlike ISO 8601-1.
   if (!isoDate || !/^-?\d{1,4}(?:-\d\d){0,2}$/.test(isoDate)) return;
 
-  var ymd = isoDate.split('-');
+  let ymd = isoDate.split('-');
   // A negative year results in an extra element at the beginning.
   if (ymd[0] === '') {
     ymd.shift();
     ymd[0] *= -1;
   }
-  var year = +ymd[0];
-  var date = dateFromUTC(year, +ymd[1] - 1, +ymd[2]);
+  let year = +ymd[0];
+  let date = dateFromUTC(year, +ymd[1] - 1, +ymd[2]);
   return !isNaN(date) && date;
 }
 
@@ -62,7 +62,7 @@ function dateFromISODate(isoDate) {
  * @returns A date object.
  */
 function dateFromUTC(year, month, day) {
-  var date = new Date(Date.UTC(year, month, day));
+  let date = new Date(Date.UTC(year, month, day));
   // Date.UTC() treats a two-digit year as an offset from 1900.
   date.setUTCFullYear(year);
   return date;
@@ -89,7 +89,7 @@ function constrainFilterByDate(filter, decimalYear) {
     return filter;
   }
 
-  var dateFilter = [
+  let dateFilter = [
     'all',
     ['any', ['!has', 'start_decdate'], ['<=', 'start_decdate', decimalYear]],
     ['any', ['!has', 'end_decdate'], ['>=', 'end_decdate', decimalYear]],
