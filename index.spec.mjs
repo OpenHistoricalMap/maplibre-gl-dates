@@ -3,26 +3,76 @@ import { describe, it } from 'node:test';
 import { featureFilter } from '@maplibre/maplibre-gl-style-spec';
 
 import {
-  dateFromISODate,
+  dateRangeFromISODate,
   decimalYearFromDate,
-  constrainLegacyFilterByDate,
-  constrainExpressionFilterByDate,
+  dateRangeFromDate,
+  constrainLegacyFilterByDateRange,
+  constrainExpressionFilterByDateRange,
   isLegacyFilter,
 } from './index.js';
 
-describe('dateFromISODate', () => {
-  it('should convert date strings to Date objects', () => {
-    assert.equal(+dateFromISODate('2013-01-01'), +new Date('2013-01-01'));
-    assert.equal(+dateFromISODate('2013-04-14'), +new Date('2013-04-14'));
-    assert.equal(+dateFromISODate('2013-12-31'), +new Date('2013-12-31'));
+describe('dateRangeFromISODate', () => {
+  it('should convert date strings to date ranges', () => {
+    assert.equal(+dateRangeFromISODate('2013-01-01').startDate, +new Date('2013-01-01'));
+    assert.equal(+dateRangeFromISODate('2013-01-01').endDate, +new Date('2013-01-01'));
+    assert.equal(+dateRangeFromISODate('2013-04-14').startDate, +new Date('2013-04-14'));
+    assert.equal(+dateRangeFromISODate('2013-04-14').endDate, +new Date('2013-04-14'));
+    assert.equal(+dateRangeFromISODate('2013-12-31').startDate, +new Date('2013-12-31'));
+    assert.equal(+dateRangeFromISODate('2013-12-31').endDate, +new Date('2013-12-31'));
+  });
+
+  it('should convert imprecise ISO 8601-1 dates', () => {
+    assert.deepEqual(dateRangeFromISODate('2013'), {
+      startDate: new Date('2013-01-01'),
+      startDecimalYear: 2013,
+      endDate: new Date('2014-01-01'),
+      endDecimalYear: 2014,
+    });
+
+    let monthPrecision = dateRangeFromISODate('2013-04');
+    assert.equal(+monthPrecision.startDate, +new Date('2013-04-01'));
+    assert.equal(+monthPrecision.startDecimalYear.toFixed(5), 2013.24658);
+    assert.equal(+monthPrecision.endDate, +new Date('2013-05-01'));
+    assert.equal(+monthPrecision.endDecimalYear.toFixed(5), 2013.32877);
+
+    let dayPrecision = dateRangeFromISODate('2013-04-14');
+    assert.equal(+dayPrecision.startDate, +new Date('2013-04-14'));
+    assert.equal(+dayPrecision.startDecimalYear.toFixed(5), 2013.28219);
+    assert.equal(+dayPrecision.endDate, +new Date('2013-04-14'));
+    assert.equal(+dayPrecision.endDecimalYear.toFixed(5), 2013.28219);
   });
 
   it('should support BCE dates', () => {
-    assert.equal(+dateFromISODate('0001-01-01'), +new Date('0001-01-01'));
-    assert.equal(+dateFromISODate('0000-01-01'), +new Date('0000-01-01'));
-    assert.equal(+dateFromISODate('-0000-01-01'), +new Date('0000-01-01'));
-    assert.equal(+dateFromISODate('-0001-01-01'), +new Date('-000001-01-01'));
-    assert.equal(+dateFromISODate('-9999-01-01'), +new Date('-009999-01-01'));
+    assert.equal(+dateRangeFromISODate('0001-01-01').startDate, +new Date('0001-01-01'));
+    assert.equal(+dateRangeFromISODate('0001-01-01').endDate, +new Date('0001-01-01'));
+    assert.equal(+dateRangeFromISODate('0000-01-01').startDate, +new Date('0000-01-01'));
+    assert.equal(+dateRangeFromISODate('0000-01-01').endDate, +new Date('0000-01-01'));
+    assert.equal(+dateRangeFromISODate('-0000-01-01').startDate, +new Date('0000-01-01'));
+    assert.equal(+dateRangeFromISODate('-0000-01-01').endDate, +new Date('0000-01-01'));
+    assert.equal(+dateRangeFromISODate('-0001-01-01').startDate, +new Date('-000001-01-01'));
+    assert.equal(+dateRangeFromISODate('-0001-01-01').endDate, +new Date('-000001-01-01'));
+    assert.equal(+dateRangeFromISODate('-9999-01-01').startDate, +new Date('-009999-01-01'));
+    assert.equal(+dateRangeFromISODate('-9999-01-01').endDate, +new Date('-009999-01-01'));
+  });
+
+  it('should support imprecise BCE dates', () => {
+    let yearPrecision = dateRangeFromISODate('-0048');
+    assert.equal(+yearPrecision.startDate, +new Date('-000048-01-01T00:00:00Z'));
+    assert.equal(+yearPrecision.startDecimalYear.toFixed(5), -49);
+    assert.equal(+yearPrecision.endDate, +new Date('-000047-01-01T00:00:00Z'));
+    assert.equal(+yearPrecision.endDecimalYear.toFixed(5), -48);
+
+    let monthPrecision = dateRangeFromISODate('-0048-01');
+    assert.equal(+monthPrecision.startDate, +new Date('-000048-01-01T00:00:00Z'));
+    assert.equal(+monthPrecision.startDecimalYear.toFixed(5), -49);
+    assert.equal(+monthPrecision.endDate, +new Date('-000048-02-01T00:00:00Z'));
+    assert.equal(+monthPrecision.endDecimalYear.toFixed(5), -48.9153);
+
+    let dayPrecision = dateRangeFromISODate('-0048-01-01');
+    assert.equal(+dayPrecision.startDate, +new Date('-000048-01-01T00:00:00Z'));
+    assert.equal(+dayPrecision.startDecimalYear.toFixed(5), -49);
+    assert.equal(+dayPrecision.endDate, +new Date('-000048-01-01T00:00:00Z'));
+    assert.equal(+dayPrecision.endDecimalYear.toFixed(5), -49);
   });
 });
 
@@ -36,8 +86,29 @@ describe('decimalYearFromDate', () => {
   it('should support BCE dates', () => {
     assert.equal(decimalYearFromDate(new Date('0001-01-01')), 1);
     assert.equal(decimalYearFromDate(new Date('0000-01-01')), 0);
-    assert.equal(decimalYearFromDate(new Date('-000001-01-01')), -1);
-    assert.equal(decimalYearFromDate(new Date('-009999-01-01')), -9999);
+    assert.equal(decimalYearFromDate(new Date('-000001-01-01')), -2);
+    assert.equal(decimalYearFromDate(new Date('-009999-01-01')), -10000);
+  });
+});
+
+describe('dateRangeFromDate', () => {
+  it('should convert ISO 8601-1 dates to date ranges', () => {
+    assert.deepEqual(dateRangeFromDate('2013'), {
+      startDate: new Date('2013-01-01'),
+      startDecimalYear: 2013,
+      endDate: new Date('2014-01-01'),
+      endDecimalYear: 2014,
+    });
+  });
+
+  it('should convert date objects to date ranges', () => {
+    assert.deepEqual(dateRangeFromDate(new Date('2013')), {
+      startDate: new Date('2013-01-01'),
+      startDecimalYear: 2013,
+      // Despite an imprecise input string, a Date object is always a point in time.
+      endDate: new Date('2013-01-01'),
+      endDecimalYear: 2013,
+    });
   });
 });
 
@@ -57,7 +128,7 @@ describe('isLegacyFilter', () => {
 
   it('should reject expression-only operators', () => {
     assert.ok(!isLegacyFilter(['coalesce', false, true]));
-    const variable = 'maplibre_gl_dates__decimalYear';
+    const variable = 'maplibre_gl_dates__startDecimalYear';
     assert.ok(!isLegacyFilter(['let', variable, 2013, ['var', variable]]));
   });
 
@@ -94,10 +165,10 @@ describe('isLegacyFilter', () => {
   });
 });
 
-describe('constrainLegacyFilterByDate', () => {
+describe('constrainLegacyFilterByDateRange', () => {
   it('should upgrade top-level non-combining filter', () => {
     let original = ['in', 'class', 'primary', 'secondary', 'tertiary'];
-    let upgraded = constrainLegacyFilterByDate(structuredClone(original), 2013);
+    let upgraded = constrainLegacyFilterByDateRange(structuredClone(original), { startDecimalYear: 2013 });
     assert.equal(upgraded.length, 4);
     assert.equal(upgraded[0], 'all');
     assert.deepEqual(upgraded[3], original);
@@ -106,16 +177,21 @@ describe('constrainLegacyFilterByDate', () => {
 
   it('should update already upgraded filter', () => {
     let original = ['in', 'class', 'primary', 'secondary', 'tertiary'];
-    let upgraded = constrainLegacyFilterByDate(structuredClone(original), 2013);
-    let updated = constrainLegacyFilterByDate(structuredClone(upgraded), 2014);
+    let upgraded = constrainLegacyFilterByDateRange(structuredClone(original), { startDecimalYear: 2013 });
+    let updated = constrainLegacyFilterByDateRange(structuredClone(upgraded), { startDecimalYear: 2014 });
     assert.equal(upgraded.length, updated.length);
     assert.doesNotMatch(JSON.stringify(updated), /2013/);
     assert.match(JSON.stringify(updated), /2014/);
   });
 
   it('should include features matching the selected date', () => {
-    let decimalYear = 2013.5;
-    let upgraded = constrainLegacyFilterByDate(['has', 'building'], decimalYear);
+    let startDecimalYear = 2013.5;
+    let dayDelta = 1/365;
+    let dateRange = {
+      startDecimalYear,
+      endDecimalYear: startDecimalYear + dayDelta, 
+    };
+    let upgraded = constrainLegacyFilterByDateRange(['has', 'building'], dateRange);
 
     let includesFeature = (start, end) => {
       let properties = { building: 'yes' };
@@ -128,47 +204,60 @@ describe('constrainLegacyFilterByDate', () => {
       return featureFilter(upgraded).filter(undefined, { properties: properties });
     };
 
-    let dayDelta = 1/365;
     assert.ok(includesFeature(undefined, undefined));
-    assert.ok(!includesFeature(undefined, decimalYear - dayDelta))
-    assert.ok(includesFeature(decimalYear - dayDelta, undefined))
-    assert.ok(includesFeature(undefined, decimalYear + dayDelta))
-    assert.ok(!includesFeature(decimalYear + dayDelta, undefined))
+    assert.ok(!includesFeature(undefined, startDecimalYear - dayDelta))
+    assert.ok(includesFeature(startDecimalYear - dayDelta, undefined))
+    assert.ok(includesFeature(startDecimalYear + dayDelta/2, startDecimalYear + dayDelta/2));
+    assert.ok(includesFeature(undefined, startDecimalYear + dayDelta))
+    assert.ok(!includesFeature(startDecimalYear + dayDelta, undefined))
   });
 });
 
-describe('constrainExpressionFilterByDate', () => {
+describe('constrainExpressionFilterByDateRange', () => {
   it('should upgrade non-variable-binding filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainExpressionFilterByDate(structuredClone(original), 2013);
-    assert.equal(upgraded.length, 4);
+    let dateRange = {
+      startDecimalYear: 2013,
+      endDecimalYear: 2014,
+    };
+    let upgraded = constrainExpressionFilterByDateRange(structuredClone(original), dateRange);
+    assert.equal(upgraded.length, 6);
     assert.equal(upgraded[0], 'let');
-    let variable = 'maplibre_gl_dates__decimalYear';
-    assert.equal(upgraded[1], variable);
+    let startVariable = 'maplibre_gl_dates__startDecimalYear';
+    let endVariable = 'maplibre_gl_dates__endDecimalYear';
+    assert.equal(upgraded[1], startVariable);
     assert.equal(upgraded[2], 2013);
-    assert.equal(upgraded[3].length, 4);
-    assert.equal(upgraded[3][0], 'all');
-    assert.match(JSON.stringify(upgraded[3][1]), new RegExp(variable));
-    assert.match(JSON.stringify(upgraded[3][2]), new RegExp(variable));
-    assert.deepEqual(upgraded[3][3], original);
+    assert.equal(upgraded[3], endVariable);
+    assert.equal(upgraded[4], 2014);
+    assert.equal(upgraded[5].length, 4);
+    assert.equal(upgraded[5][0], 'all');
+    assert.match(JSON.stringify(upgraded[5][1]), new RegExp(endVariable));
+    assert.match(JSON.stringify(upgraded[5][2]), new RegExp(startVariable));
+    assert.deepEqual(upgraded[5][3], original);
   });
 
   it('should update variable-binding filter', () => {
     let original = ['let', 'language', 'sux', ['get', ['+', 'name', ['var', 'language']]]];
-    let updated = constrainExpressionFilterByDate(structuredClone(original), 2014);
-    assert.equal(original.length + 2, updated.length);
+    let dateRange = {
+      startDecimalYear: 2013,
+      endDecimalYear: 2014,
+    };
+    let updated = constrainExpressionFilterByDateRange(structuredClone(original), dateRange);
+    assert.equal(original.length + 4, updated.length);
     assert.equal(updated[0], 'let');
     assert.equal(original[1], updated[1]);
     assert.equal(original[2], updated[2]);
-    assert.equal(updated[3], 'maplibre_gl_dates__decimalYear');
-    assert.equal(updated[4], 2014);
-    assert.deepEqual(original[3], updated[5]);
+    assert.equal(updated[3], 'maplibre_gl_dates__startDecimalYear');
+    assert.equal(updated[4], 2013);
+    assert.equal(updated[5], 'maplibre_gl_dates__endDecimalYear');
+    assert.equal(updated[6], 2014);
+    assert.deepEqual(original[3], updated[7]);
   });
 
   it('should update already upgraded filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainExpressionFilterByDate(structuredClone(original), 2013);
-    let updated = constrainExpressionFilterByDate(structuredClone(upgraded), 2014);
+    let upgraded = constrainExpressionFilterByDateRange(structuredClone(original), { startDecimalYear: 2013 });
+    let updated = constrainExpressionFilterByDateRange(structuredClone(upgraded), { startDecimalYear: 2014 });
     assert.equal(upgraded.length, updated.length);
     assert.equal(updated[0], 'let');
     assert.equal(upgraded[1], updated[1]);
@@ -177,8 +266,13 @@ describe('constrainExpressionFilterByDate', () => {
   });
 
   it('should include features matching the selected date', () => {
-    let decimalYear = 2013.5;
-    let upgraded = constrainExpressionFilterByDate(['has', 'building'], decimalYear);
+    let startDecimalYear = 2013.5;
+    let dayDelta = 1/365;
+    let dateRange = {
+      startDecimalYear,
+      endDecimalYear: startDecimalYear + dayDelta, 
+    };
+    let upgraded = constrainExpressionFilterByDateRange(['has', 'building'], dateRange);
 
     let includesFeature = (start, end) => {
       let properties = { building: 'yes' };
@@ -191,11 +285,11 @@ describe('constrainExpressionFilterByDate', () => {
       return featureFilter(upgraded).filter(undefined, { properties: properties });
     };
 
-    let dayDelta = 1/365;
     assert.ok(includesFeature(undefined, undefined));
-    assert.ok(!includesFeature(undefined, decimalYear - dayDelta))
-    assert.ok(includesFeature(decimalYear - dayDelta, undefined))
-    assert.ok(includesFeature(undefined, decimalYear + dayDelta))
-    assert.ok(!includesFeature(decimalYear + dayDelta, undefined))
+    assert.ok(!includesFeature(undefined, startDecimalYear - dayDelta))
+    assert.ok(includesFeature(startDecimalYear - dayDelta, undefined))
+    assert.ok(includesFeature(startDecimalYear + dayDelta/2, startDecimalYear + dayDelta/2));
+    assert.ok(includesFeature(undefined, startDecimalYear + dayDelta))
+    assert.ok(!includesFeature(startDecimalYear + dayDelta, undefined))
   });
 });

@@ -5,55 +5,88 @@ const variablePrefix = 'maplibre_gl_dates';
  * Filters the map’s features by a date.
  *
  * @param map The MapboxGL map object to filter the style of.
- * @param date The date to filter by.
+ * @param date The date object or date string to filter by.
  */
 function filterByDate(map, date) {
-  if (typeof date === 'string') {
-    date = dateFromISODate(date);
-  }
-  let decimalYear = decimalYearFromDate(date);
+  let dateRange = dateRangeFromDate(date);
   map.getStyle().layers.map(function (layer) {
     if (!('source-layer' in layer)) return;
 
-    let filter = constrainFilterByDate(map.getFilter(layer.id), decimalYear);
+    let filter = constrainFilterByDateRange(map.getFilter(layer.id), dateRange);
     map.setFilter(layer.id, filter);
   });
 }
 
 /**
- * Converts the given date to a decimal year.
+ * Converts the given date to a date range object.
  *
- * @param date A date object.
- * @returns A floating point number of years since year 0.
+ * @param date A date object or date string in ISO 8601-1 format.
+ * @returns A date range object.
  */
-function decimalYearFromDate(date) {
-  // Add the year and the fraction of the date between two New Year’s Days.
-  let year = date.getUTCFullYear();
-  let nextNewYear = dateFromUTC(year + 1, 0, 1).getTime();
-  let lastNewYear = dateFromUTC(year, 0, 1).getTime();
-  return year + (date.getTime() - lastNewYear) / (nextNewYear - lastNewYear);
+function dateRangeFromDate(date) {
+  let dateRange;
+  if (typeof date === 'string') {
+    dateRange = dateRangeFromISODate(date);
+  } else if (date instanceof Date) {
+    let decimalYear = !isNaN(date) && decimalYearFromDate(date);
+    dateRange = {
+      startDate: date,
+      startDecimalYear: decimalYear,
+      endDate: date,
+      endDecimalYear: decimalYear,
+    };
+  }
+  return dateRange;
 }
 
 /**
- * Converts the given ISO 8601-1 date to a `Date` object.
+ * Converts the given ISO 8601-1 date to a date range object.
  *
  * @param isoDate A date string in ISO 8601-1 format.
- * @returns A date object.
+ * @returns A date range object indicating the minimum (inclusive) and maximum
+ *  (exclusive) possible dates represented by the given date string.
  */
-function dateFromISODate(isoDate) {
+function dateRangeFromISODate(isoDate) {
   // Require a valid YYYY, YYYY-MM, or YYYY-MM-DD date, but allow the year
   // to be a variable number of digits or negative, unlike ISO 8601-1.
   if (!isoDate || !/^-?\d{1,4}(?:-\d\d){0,2}$/.test(isoDate)) return;
 
   let ymd = isoDate.split('-');
   // A negative year results in an extra element at the beginning.
-  if (ymd[0] === '') {
+  let isBCE = ymd[0] === '';
+  if (isBCE) {
     ymd.shift();
     ymd[0] *= -1;
   }
-  let year = +ymd[0];
-  let date = dateFromUTC(year, +ymd[1] - 1, +ymd[2]);
-  return !isNaN(date) && date;
+  let startYear = +ymd[0];
+  let endYear = +ymd[0];
+
+  let startMonth, endMonth;
+  if (ymd[1]) {
+    // Date.UTC() uses zero-based months.
+    startMonth = endMonth = +ymd[1] - 1;
+  } else {
+    endYear++;
+    startMonth = endMonth = 0;
+  }
+
+  let startDay, endDay;
+  if (ymd[2]) {
+    startDay = endDay = +ymd[2];
+  } else if (ymd[1]) {
+    // Months still count forwards in BCE.
+    endMonth++;
+    startDay = endDay = 1;
+  }
+  
+  let startDate = dateFromUTC(startYear, startMonth, startDay);
+  let endDate = dateFromUTC(endYear, endMonth, endDay);
+  return {
+    startDate: !isNaN(startDate) && startDate,
+    startDecimalYear: !isNaN(startDate) && decimalYearFromDate(startDate),
+    endDate: !isNaN(endDate) && endDate,
+    endDecimalYear: !isNaN(endDate) && decimalYearFromDate(endDate),
+  };
 }
 
 /**
@@ -72,41 +105,59 @@ function dateFromUTC(year, month, day) {
 }
 
 /**
+ * Converts the given date to a decimal year.
+ *
+ * @param date A date object.
+ * @returns A floating point number of years since year 0.
+ */
+function decimalYearFromDate(date) {
+  // Add the year and the fraction of the date between two New Year’s Days.
+  let year = date.getUTCFullYear();
+  let nextNewYear = dateFromUTC(year + 1, 0, 1).getTime();
+  let lastNewYear = dateFromUTC(year, 0, 1).getTime();
+  if (year < 0) {
+    // New Year’s 1 BCE is closer to -2 than -1.
+    year--;
+  }
+  return year + (date.getTime() - lastNewYear) / (nextNewYear - lastNewYear);
+}
+
+/**
  * Returns a modified version of the given filter that only evaluates to
- * true if the feature coincides with the given decimal year.
+ * true if the feature overlaps with the given date range.
  *
  * @param filter The original layer filter.
- * @param decimalYear The decimal year to filter by.
+ * @param dateRange The date range to filter by.
  * @returns A filter similar to the given filter, but with added conditions
- *	that require the feature to coincide with the decimal year.
+ *	that require the feature to overlap with the date range.
  */
-function constrainFilterByDate(filter, decimalYear) {
+function constrainFilterByDateRange(filter, dateRange) {
   if (typeof filter === 'undefined') {
     return;
   } else if (isLegacyFilter(filter)) {
-    return constrainLegacyFilterByDate(filter, decimalYear);
+    return constrainLegacyFilterByDateRange(filter, dateRange);
   } else {
-    return constrainExpressionFilterByDate(filter, decimalYear);
+    return constrainExpressionFilterByDateRange(filter, dateRange);
   }
 }
 
 /**
  * Returns a modified version of the given legacy filter that only evaluates to
- * true if the feature coincides with the given decimal year.
+ * true if the feature overlaps with the given date range.
  *
  * @param filter The original layer filter using the legacy syntax.
- * @param decimalYear The decimal year to filter by.
+ * @param dateRange The date range to filter by.
  * @returns A filter similar to the given filter, but with added conditions
- *	that require the feature to coincide with the decimal year. If the filter
+ *	that require the feature to overlap with the date range. If the filter has
  *  previously been passed into this function, it surgically updates the filter.
  */
-function constrainLegacyFilterByDate(filter, decimalYear) {
+function constrainLegacyFilterByDateRange(filter, dateRange) {
   if (filter[0] === 'all' && filter[1] && filter[1][0] === 'any') {
-    if (filter[1][2] && filter[1][2][0] === '<=' && filter[1][2][1] === 'start_decdate') {
-      filter[1][2][2] = decimalYear;
+    if (filter[1][2] && filter[1][2][0] === '<' && filter[1][2][1] === 'start_decdate') {
+      filter[1][2][2] = dateRange.endDecimalYear;
     }
     if (filter[2][2] && filter[2][2][0] === '>=' && filter[2][2][1] === 'end_decdate') {
-      filter[2][2][2] = decimalYear;
+      filter[2][2][2] = dateRange.startDecimalYear;
     }
     return filter;
   }
@@ -116,12 +167,12 @@ function constrainLegacyFilterByDate(filter, decimalYear) {
     [
       'any',
       ['!has', 'start_decdate'],
-      ['<=', 'start_decdate', decimalYear]
+      ['<', 'start_decdate', dateRange.endDecimalYear]
     ],
     [
       'any',
       ['!has', 'end_decdate'],
-      ['>=', 'end_decdate', decimalYear]
+      ['>=', 'end_decdate', dateRange.startDecimalYear]
     ],
     filter,
   ];
@@ -129,24 +180,33 @@ function constrainLegacyFilterByDate(filter, decimalYear) {
 
 /**
  * Returns a modified version of the given expression-based filter that only
- * evaluates to true if the feature coincides with the given decimal year.
+ * evaluates to true if the feature overlaps with the given date range.
  *
  * @param filter The original layer filter using the expression syntax.
- * @param decimalYear The decimal year to filter by.
+ * @param dateRange The date range to filter by.
  * @returns A filter similar to the given filter, but with added conditions
- *	that require the feature to coincide with the decimal year. If the filter
+ *	that require the feature to overlap with the date range. If the filter has
  *  previously been passed into this function, or if it already has a `let`
  *  expression at the top level, it merely updates a variable.
  */
-function constrainExpressionFilterByDate(filter, decimalYear) {
-  const decimalYearVariable = `${variablePrefix}__decimalYear`;
+function constrainExpressionFilterByDateRange(filter, dateRange) {
+  const startDecimalYearVariable = `${variablePrefix}__startDecimalYear`;
+  const endDecimalYearVariable = `${variablePrefix}__endDecimalYear`;
   if (filter[0] === 'let') {
-    let variableIndex = filter.indexOf(decimalYearVariable);
-    if (variableIndex !== -1 && variableIndex % 2 === 1) {
-      filter[variableIndex + 1] = decimalYear;
+    let startVariableIndex = filter.indexOf(startDecimalYearVariable);
+    if (startVariableIndex !== -1 && startVariableIndex % 2 === 1) {
+      filter[startVariableIndex + 1] = dateRange.startDecimalYear;
     } else {
-      filter.splice(-1, 0, decimalYearVariable, decimalYear);
+      filter.splice(-1, 0, startDecimalYearVariable, dateRange.startDecimalYear);
     }
+
+    let endVariableIndex = filter.indexOf(endDecimalYearVariable);
+    if (endVariableIndex !== -1 && endVariableIndex % 2 === 1) {
+      filter[endVariableIndex + 1] = dateRange.endDecimalYear;
+    } else {
+      filter.splice(-1, 0, endDecimalYearVariable, dateRange.endDecimalYear);
+    }
+
     return filter;
   }
 
@@ -155,19 +215,20 @@ function constrainExpressionFilterByDate(filter, decimalYear) {
     [
       'any',
       ['!', ['has', 'start_decdate']],
-      ['<=', ['get', 'start_decdate'], ['var', decimalYearVariable]]
+      ['<', ['get', 'start_decdate'], ['var', endDecimalYearVariable]]
     ],
     [
       'any',
       ['!', ['has', 'end_decdate']],
-      ['>=', ['get', 'end_decdate'], ['var', decimalYearVariable]]
+      ['>=', ['get', 'end_decdate'], ['var', startDecimalYearVariable]]
     ],
     filter,
   ];
 
   return [
     'let',
-    decimalYearVariable, decimalYear,
+    startDecimalYearVariable, dateRange.startDecimalYear,
+    endDecimalYearVariable, dateRange.endDecimalYear,
     allExpression,
   ];
 }
@@ -231,11 +292,12 @@ if (typeof window !== 'undefined' && 'maplibregl' in window) {
 } else if (typeof module !== 'undefined') {
   module.exports = {
     filterByDate: filterByDate,
+    dateRangeFromDate: dateRangeFromDate,
     decimalYearFromDate: decimalYearFromDate,
-    dateFromISODate: dateFromISODate,
-    constrainFilterByDate: constrainFilterByDate,
-    constrainLegacyFilterByDate: constrainLegacyFilterByDate,
-    constrainExpressionFilterByDate: constrainExpressionFilterByDate,
+    dateRangeFromISODate: dateRangeFromISODate,
+    constrainFilterByDateRange: constrainFilterByDateRange,
+    constrainLegacyFilterByDateRange: constrainLegacyFilterByDateRange,
+    constrainExpressionFilterByDateRange: constrainExpressionFilterByDateRange,
     isLegacyFilter: isLegacyFilter,
   };
 }
