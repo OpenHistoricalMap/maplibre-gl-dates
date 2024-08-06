@@ -9,6 +9,7 @@ import {
   constrainLegacyFilterByDateRange,
   constrainExpressionFilterByDateRange,
   isLegacyFilter,
+  updateVariable,
 } from './index.js';
 
 describe('dateRangeFromISODate', () => {
@@ -25,8 +26,10 @@ describe('dateRangeFromISODate', () => {
     assert.deepEqual(dateRangeFromISODate('2013'), {
       startDate: new Date('2013-01-01'),
       startDecimalYear: 2013,
+      startISODate: '2013-01-01',
       endDate: new Date('2014-01-01'),
       endDecimalYear: 2014,
+      endISODate: '2014-01-01',
     });
 
     let monthPrecision = dateRangeFromISODate('2013-04');
@@ -96,8 +99,10 @@ describe('dateRangeFromDate', () => {
     assert.deepEqual(dateRangeFromDate('2013'), {
       startDate: new Date('2013-01-01'),
       startDecimalYear: 2013,
+      startISODate: '2013-01-01',
       endDate: new Date('2014-01-01'),
       endDecimalYear: 2014,
+      endISODate: '2014-01-01',
     });
   });
 
@@ -105,9 +110,11 @@ describe('dateRangeFromDate', () => {
     assert.deepEqual(dateRangeFromDate(new Date('2013')), {
       startDate: new Date('2013-01-01'),
       startDecimalYear: 2013,
+      startISODate: '2013-01-01',
       // Despite an imprecise input string, a Date object is always a point in time.
       endDate: new Date('2013-01-01'),
       endDecimalYear: 2013,
+      endISODate: '2013-01-01',
     });
   });
 });
@@ -189,7 +196,9 @@ describe('constrainLegacyFilterByDateRange', () => {
     let dayDelta = 1/365;
     let dateRange = {
       startDecimalYear,
-      endDecimalYear: startDecimalYear + dayDelta, 
+      startISODate: '2013-07-02',
+      endDecimalYear: startDecimalYear + dayDelta,
+      endISODate: '2013-07-03',
     };
     let upgraded = constrainLegacyFilterByDateRange(['has', 'building'], dateRange);
 
@@ -205,11 +214,40 @@ describe('constrainLegacyFilterByDateRange', () => {
     };
 
     assert.ok(includesFeature(undefined, undefined));
-    assert.ok(!includesFeature(undefined, startDecimalYear - dayDelta))
-    assert.ok(includesFeature(startDecimalYear - dayDelta, undefined))
+    assert.ok(!includesFeature(undefined, startDecimalYear - dayDelta));
+    assert.ok(includesFeature(startDecimalYear - dayDelta, undefined));
     assert.ok(includesFeature(startDecimalYear + dayDelta/2, startDecimalYear + dayDelta/2));
-    assert.ok(includesFeature(undefined, startDecimalYear + dayDelta))
-    assert.ok(!includesFeature(startDecimalYear + dayDelta, undefined))
+    assert.ok(includesFeature(undefined, startDecimalYear + dayDelta));
+    assert.ok(!includesFeature(startDecimalYear + dayDelta, undefined));
+  });
+
+  it('should fall back to date string properties if decimal year properties are missing', () => {
+    let startDecimalYear = 2013.28219; 
+    let dayDelta = 1/365;
+    let dateRange = {
+      startDecimalYear: startDecimalYear,
+      startISODate: '2013-04-14',
+      endDecimalYear: startDecimalYear + dayDelta,
+      endISODate: '2013-04-15', 
+    };
+    let upgraded = constrainLegacyFilterByDateRange(['has', 'building'], dateRange);
+
+    let includesFeature = (start, end) => {
+      let properties = { building: 'yes' };
+      if (typeof start !== 'undefined') {
+        properties.start_date = start;
+      }
+      if (typeof end !== 'undefined') {
+        properties.end_date = end;
+      }
+      return featureFilter(upgraded).filter(undefined, { properties: properties });
+    };
+
+    assert.ok(includesFeature(undefined, undefined));
+    assert.ok(!includesFeature(undefined, '2013-04-13'));
+    assert.ok(includesFeature('2013-04-13', undefined));
+    assert.ok(includesFeature(undefined, '2013-04-15'));
+    assert.ok(!includesFeature('2013-04-15', undefined));
   });
 });
 
@@ -218,46 +256,66 @@ describe('constrainExpressionFilterByDateRange', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
     let dateRange = {
       startDecimalYear: 2013,
+      startISODate: '2013-01-01',
       endDecimalYear: 2014,
+      endISODate: '2014-01-01',
     };
     let upgraded = constrainExpressionFilterByDateRange(structuredClone(original), dateRange);
-    assert.equal(upgraded.length, 6);
+    assert.equal(upgraded.length, 10);
     assert.equal(upgraded[0], 'let');
-    let startVariable = 'maplibre_gl_dates__startDecimalYear';
-    let endVariable = 'maplibre_gl_dates__endDecimalYear';
-    assert.equal(upgraded[1], startVariable);
+    let startDecimalYearVariable = 'maplibre_gl_dates__startDecimalYear';
+    let startISODateVariable = 'maplibre_gl_dates__startISODate';
+    let endDecimalYearVariable = 'maplibre_gl_dates__endDecimalYear';
+    let endISODateVariable = 'maplibre_gl_dates__endISODate';
+    assert.equal(upgraded[1], startDecimalYearVariable);
     assert.equal(upgraded[2], 2013);
-    assert.equal(upgraded[3], endVariable);
-    assert.equal(upgraded[4], 2014);
-    assert.equal(upgraded[5].length, 4);
-    assert.equal(upgraded[5][0], 'all');
-    assert.match(JSON.stringify(upgraded[5][1]), new RegExp(endVariable));
-    assert.match(JSON.stringify(upgraded[5][2]), new RegExp(startVariable));
-    assert.deepEqual(upgraded[5][3], original);
+    assert.equal(upgraded[3], startISODateVariable);
+    assert.equal(upgraded[4], '2013-01-01');
+    assert.equal(upgraded[5], endDecimalYearVariable);
+    assert.equal(upgraded[6], 2014);
+    assert.equal(upgraded[7], endISODateVariable);
+    assert.equal(upgraded[8], '2014-01-01');
+    assert.equal(upgraded[9].length, 4);
+    assert.equal(upgraded[9][0], 'all');
+    assert.match(JSON.stringify(upgraded[9][1]), new RegExp(endDecimalYearVariable));
+    assert.match(JSON.stringify(upgraded[9][2]), new RegExp(startDecimalYearVariable));
+    assert.deepEqual(upgraded[9][3], original);
   });
 
   it('should update variable-binding filter', () => {
     let original = ['let', 'language', 'sux', ['get', ['+', 'name', ['var', 'language']]]];
     let dateRange = {
       startDecimalYear: 2013,
+      startISODate: '2013-01-01',
       endDecimalYear: 2014,
+      endISODate: '2014-01-01',
     };
     let updated = constrainExpressionFilterByDateRange(structuredClone(original), dateRange);
-    assert.equal(original.length + 4, updated.length);
+    assert.equal(original.length + 8, updated.length);
     assert.equal(updated[0], 'let');
     assert.equal(original[1], updated[1]);
     assert.equal(original[2], updated[2]);
     assert.equal(updated[3], 'maplibre_gl_dates__startDecimalYear');
     assert.equal(updated[4], 2013);
-    assert.equal(updated[5], 'maplibre_gl_dates__endDecimalYear');
-    assert.equal(updated[6], 2014);
-    assert.deepEqual(original[3], updated[7]);
+    assert.equal(updated[5], 'maplibre_gl_dates__startISODate');
+    assert.equal(updated[6], '2013-01-01');
+    assert.equal(updated[7], 'maplibre_gl_dates__endDecimalYear');
+    assert.equal(updated[8], 2014);
+    assert.equal(updated[9], 'maplibre_gl_dates__endISODate');
+    assert.equal(updated[10], '2014-01-01');
+    assert.deepEqual(original[3], updated[11]);
   });
 
   it('should update already upgraded filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainExpressionFilterByDateRange(structuredClone(original), { startDecimalYear: 2013 });
-    let updated = constrainExpressionFilterByDateRange(structuredClone(upgraded), { startDecimalYear: 2014 });
+    let upgraded = constrainExpressionFilterByDateRange(structuredClone(original), {
+      startDecimalYear: 2013,
+      startISODate: '2013-01-01',
+    });
+    let updated = constrainExpressionFilterByDateRange(structuredClone(upgraded), {
+      startDecimalYear: 2014,
+      startISODate: '2014-01-01',
+    });
     assert.equal(upgraded.length, updated.length);
     assert.equal(updated[0], 'let');
     assert.equal(upgraded[1], updated[1]);
@@ -270,7 +328,9 @@ describe('constrainExpressionFilterByDateRange', () => {
     let dayDelta = 1/365;
     let dateRange = {
       startDecimalYear,
-      endDecimalYear: startDecimalYear + dayDelta, 
+      startISODate: '2013-07-02',
+      endDecimalYear: startDecimalYear + dayDelta,
+      endISODate: '2013-07-03',
     };
     let upgraded = constrainExpressionFilterByDateRange(['has', 'building'], dateRange);
 
@@ -286,10 +346,48 @@ describe('constrainExpressionFilterByDateRange', () => {
     };
 
     assert.ok(includesFeature(undefined, undefined));
-    assert.ok(!includesFeature(undefined, startDecimalYear - dayDelta))
-    assert.ok(includesFeature(startDecimalYear - dayDelta, undefined))
+    assert.ok(!includesFeature(undefined, startDecimalYear - dayDelta));
+    assert.ok(includesFeature(startDecimalYear - dayDelta, undefined));
     assert.ok(includesFeature(startDecimalYear + dayDelta/2, startDecimalYear + dayDelta/2));
-    assert.ok(includesFeature(undefined, startDecimalYear + dayDelta))
-    assert.ok(!includesFeature(startDecimalYear + dayDelta, undefined))
+    assert.ok(includesFeature(undefined, startDecimalYear + dayDelta));
+    assert.ok(!includesFeature(startDecimalYear + dayDelta, undefined));
+  });
+
+  it('should fall back to date string properties if decimal year properties are missing', () => {
+    let startDecimalYear = 2013.28219; 
+    let dayDelta = 1/365;
+    let dateRange = {
+      startDecimalYear: startDecimalYear,
+      startISODate: '2013-04-14',
+      endDecimalYear: startDecimalYear + dayDelta,
+      endISODate: '2013-04-15', 
+    };
+    let upgraded = constrainExpressionFilterByDateRange(['has', 'building'], dateRange);
+
+    let includesFeature = (start, end) => {
+      let properties = { building: 'yes' };
+      if (typeof start !== 'undefined') {
+        properties.start_date = start;
+      }
+      if (typeof end !== 'undefined') {
+        properties.end_date = end;
+      }
+      return featureFilter(upgraded).filter(undefined, { properties: properties });
+    };
+
+    assert.ok(includesFeature(undefined, undefined));
+    assert.ok(!includesFeature(undefined, '2013-04-13'));
+    assert.ok(includesFeature('2013-04-13', undefined));
+    assert.ok(!includesFeature(undefined, '2013-04-15'), 'End date should be exclusive.');
+    assert.ok(!includesFeature('2013-04-15', undefined));
+  });
+});
+
+describe('updateVariable', () => {
+  it('should ignore non-let expressions', () => {
+    let original = ['has', 'building'];
+    let updated = structuredClone(original);
+    updateVariable(updated, 'startISODate', '2013-04-14');
+    assert.deepEqual(original, updated);
   });
 });

@@ -27,13 +27,16 @@ function dateRangeFromDate(date) {
   let dateRange;
   if (typeof date === 'string') {
     dateRange = dateRangeFromISODate(date);
-  } else if (date instanceof Date) {
-    let decimalYear = !isNaN(date) && decimalYearFromDate(date);
+  } else if (date instanceof Date && !isNaN(date)) {
+    let decimalYear = decimalYearFromDate(date);
+    let isoDate = date.toISOString().split('T')[0];
     dateRange = {
       startDate: date,
       startDecimalYear: decimalYear,
+      startISODate: isoDate,
       endDate: date,
       endDecimalYear: decimalYear,
+      endISODate: isoDate,
     };
   }
   return dateRange;
@@ -84,8 +87,10 @@ function dateRangeFromISODate(isoDate) {
   return {
     startDate: !isNaN(startDate) && startDate,
     startDecimalYear: !isNaN(startDate) && decimalYearFromDate(startDate),
+    startISODate: !isNaN(startDate) && startDate.toISOString().split('T')[0],
     endDate: !isNaN(endDate) && endDate,
     endDecimalYear: !isNaN(endDate) && decimalYearFromDate(endDate),
+    endISODate: !isNaN(endDate) && endDate.toISOString().split('T')[0],
   };
 }
 
@@ -152,12 +157,27 @@ function constrainFilterByDateRange(filter, dateRange) {
  *  previously been passed into this function, it surgically updates the filter.
  */
 function constrainLegacyFilterByDateRange(filter, dateRange) {
-  if (filter[0] === 'all' && filter[1] && filter[1][0] === 'any') {
-    if (filter[1][2] && filter[1][2][0] === '<' && filter[1][2][1] === 'start_decdate') {
-      filter[1][2][2] = dateRange.endDecimalYear;
+  if (filter[0] === 'all' &&
+      filter[2] && filter[1][0] === 'any' && filter[2][0] === 'any') {
+    if (filter[1][1] && filter[1][1][0] === 'all' &&
+        filter[1][1][2] && filter[1][1][2][0] === '<' &&
+        filter[1][1][2][1] === 'start_decdate') {
+      filter[1][1][2][2] = dateRange.endDecimalYear;
     }
-    if (filter[2][2] && filter[2][2][0] === '>=' && filter[2][2][1] === 'end_decdate') {
-      filter[2][2][2] = dateRange.startDecimalYear;
+    if (filter[1][2] && filter[1][2][0] === 'all' &&
+        filter[1][2][2] && filter[1][2][2][0] === '<' &&
+        filter[1][2][2][1] === 'start_date') {
+      filter[1][2][2][2] = dateRange.endISODate;
+    }
+    if (filter[2][1] && filter[2][1][0] === 'all' &&
+        filter[2][1][2] && filter[2][1][2][0] === '>=' &&
+        filter[2][1][2][1] === 'end_decdate') {
+      filter[2][1][2][2] = dateRange.startDecimalYear;
+    }
+    if (filter[2][2] && filter[2][2][0] === 'all' &&
+        filter[2][2][2] && filter[2][2][2][0] === '>=' &&
+        filter[2][2][2][1] === 'end_date') {
+      filter[2][2][2][2] = dateRange.startISODate;
     }
     return filter;
   }
@@ -166,13 +186,39 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
     'all',
     [
       'any',
-      ['!has', 'start_decdate'],
-      ['<', 'start_decdate', dateRange.endDecimalYear]
+      [
+        'all',
+        ['has', 'start_decdate'],
+        ['<', 'start_decdate', dateRange.endDecimalYear],
+      ],
+      [
+        'all',
+        ['has', 'start_date'],
+        ['<', 'start_date', dateRange.endISODate],
+      ],
+      [
+        'all',
+        ['!has', 'start_decdate'],
+        ['!has', 'start_date'],
+      ],
     ],
     [
       'any',
-      ['!has', 'end_decdate'],
-      ['>=', 'end_decdate', dateRange.startDecimalYear]
+      [
+        'all',
+        ['has', 'end_decdate'],
+        ['>=', 'end_decdate', dateRange.startDecimalYear],
+      ],
+      [
+        'all',
+        ['has', 'end_date'],
+        ['>=', 'end_date', dateRange.startISODate],
+      ],
+      [
+        'all',
+        ['!has', 'end_decdate'],
+        ['!has', 'end_date'],
+      ],
     ],
     filter,
   ];
@@ -191,22 +237,14 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
  */
 function constrainExpressionFilterByDateRange(filter, dateRange) {
   const startDecimalYearVariable = `${variablePrefix}__startDecimalYear`;
+  const startISODateVariable = `${variablePrefix}__startISODate`;
   const endDecimalYearVariable = `${variablePrefix}__endDecimalYear`;
+  const endISODateVariable = `${variablePrefix}__endISODate`;
   if (filter[0] === 'let') {
-    let startVariableIndex = filter.indexOf(startDecimalYearVariable);
-    if (startVariableIndex !== -1 && startVariableIndex % 2 === 1) {
-      filter[startVariableIndex + 1] = dateRange.startDecimalYear;
-    } else {
-      filter.splice(-1, 0, startDecimalYearVariable, dateRange.startDecimalYear);
-    }
-
-    let endVariableIndex = filter.indexOf(endDecimalYearVariable);
-    if (endVariableIndex !== -1 && endVariableIndex % 2 === 1) {
-      filter[endVariableIndex + 1] = dateRange.endDecimalYear;
-    } else {
-      filter.splice(-1, 0, endDecimalYearVariable, dateRange.endDecimalYear);
-    }
-
+    updateVariable(filter, startDecimalYearVariable, dateRange.startDecimalYear);
+    updateVariable(filter, startISODateVariable, dateRange.startISODate);
+    updateVariable(filter, endDecimalYearVariable, dateRange.endDecimalYear);
+    updateVariable(filter, endISODateVariable, dateRange.endISODate);
     return filter;
   }
 
@@ -214,13 +252,39 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
     'all',
     [
       'any',
-      ['!', ['has', 'start_decdate']],
-      ['<', ['get', 'start_decdate'], ['var', endDecimalYearVariable]]
+      [
+        'all',
+        ['has', 'start_decdate'],
+        ['<', ['get', 'start_decdate'], ['var', endDecimalYearVariable]],
+      ],
+      [
+        'all',
+        ['has', 'start_date'],
+        ['<', ['get', 'start_date'], ['var', endISODateVariable]],
+      ],
+      [
+        'all',
+        ['!', ['has', 'start_decdate']],
+        ['!', ['has', 'start_date']]
+      ],
     ],
     [
       'any',
-      ['!', ['has', 'end_decdate']],
-      ['>=', ['get', 'end_decdate'], ['var', startDecimalYearVariable]]
+      [
+        'all',
+        ['has', 'end_decdate'],
+        ['>=', ['get', 'end_decdate'], ['var', startDecimalYearVariable]],
+      ],
+      [
+        'all',
+        ['has', 'end_decdate'],
+        ['>=', ['get', 'end_date'], ['var', startISODateVariable]],
+      ],
+      [
+        'all',
+        ['!', ['has', 'end_decdate']],
+        ['!', ['has', 'end_date']]
+      ],
     ],
     filter,
   ];
@@ -228,7 +292,9 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
   return [
     'let',
     startDecimalYearVariable, dateRange.startDecimalYear,
+    startISODateVariable, dateRange.startISODate,
     endDecimalYearVariable, dateRange.endDecimalYear,
+    endISODateVariable, dateRange.endISODate,
     allExpression,
   ];
 }
@@ -285,19 +351,41 @@ function isLegacyFilter(filter) {
   }
 }
 
+/**
+ * Mutates a `let` expression to have a new value for the variable by the given
+ * name.
+ *
+ * @param letExpression A `let` expression.
+ * @param name The name of the variable to mutate.
+ * @param newValue The variable’s new value.
+ */
+function updateVariable(letExpression, name, newValue) {
+  if (letExpression[0] !== 'let') {
+    return;
+  }
+
+  let variableIndex = letExpression.indexOf(name);
+  if (variableIndex !== -1 && variableIndex % 2 === 1) {
+    letExpression[variableIndex + 1] = newValue;
+  } else {
+    letExpression.splice(-1, 0, name, newValue);
+  }
+}
+
 if (typeof window !== 'undefined' && 'maplibregl' in window) {
   maplibregl.Map.prototype.filterByDate = function (date) {
     filterByDate(this, date);
   };
 } else if (typeof module !== 'undefined') {
   module.exports = {
-    filterByDate: filterByDate,
-    dateRangeFromDate: dateRangeFromDate,
-    decimalYearFromDate: decimalYearFromDate,
-    dateRangeFromISODate: dateRangeFromISODate,
-    constrainFilterByDateRange: constrainFilterByDateRange,
-    constrainLegacyFilterByDateRange: constrainLegacyFilterByDateRange,
-    constrainExpressionFilterByDateRange: constrainExpressionFilterByDateRange,
-    isLegacyFilter: isLegacyFilter,
+    filterByDate,
+    dateRangeFromDate,
+    decimalYearFromDate,
+    dateRangeFromISODate,
+    constrainFilterByDateRange,
+    constrainLegacyFilterByDateRange,
+    constrainExpressionFilterByDateRange,
+    isLegacyFilter,
+    updateVariable,
   };
 }

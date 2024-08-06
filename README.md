@@ -12,10 +12,16 @@ The stylesheet must be backed by a vector tileset, such as [OpenHistoricalMap’
 
 Property | Type | Description
 ----|----|----
-`start_decdate` | Number | The date the feature came into existence in decimal year format.
-`end_decdate` | Number | The date the feature went out of existence in decimal year format.
+`start_date` | String | The date the feature came into existence as a date string.
+`start_decdate` | Number | The date the feature came into existence as a decimal year.
+`end_date` | String | The date the feature went out of existence as a date string.
+`end_decdate` | Number | The date the feature went out of existence as a decimal year.
 
-Decimal year format is defined as a floating-point number in the proleptic Gregorian calendar, such that each integer represents midnight on New Year’s Day. As there is no Year Zero, the value 1.0 falls on New Year’s Day of 1&nbsp;CE, the value 0.0 falls on 1&nbsp;BCE, the value -1.0 falls on 2&nbsp;BCE, etc. An implementation of decimal year conversion functions is available [for PL/pgSQL ](https://github.com/OpenHistoricalMap/DateFunctions-plpgsql/).
+A date string is a date in `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` format, similar to ISO&nbsp;8601-1 format. A decimal year is a floating-point number such that each integer represents midnight on New Year’s Day. An implementation of decimal year conversion functions is available [for PL/pgSQL](https://github.com/OpenHistoricalMap/DateFunctions-plpgsql/).
+
+All properties are optional, but the plugin will only have an effect if one or more of these properties is present in the tileset. For performance reasons, if a given feature has a `start_decdate` or `end_decdate` property, this plugin prefers it over the `start_date` or `end_date` property.
+
+Regardless of the data type, all dates are interpreted according to the proleptic Gregorian calendar. As there is no Year Zero, the value 1.0 falls on New Year’s Day of 1&nbsp;CE, the value 0.0 falls on 1&nbsp;BCE, the value -1.0 falls on 2&nbsp;BCE, etc.
 
 ## Installation
 
@@ -73,7 +79,7 @@ Parameter | Type | Description
 ----|----|----
 `date` | `Date` or date string | The date to filter by.
 
-A date string is defined as a date in `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` format, similar to ISO&nbsp;8601-1 format. Negative years are supported as described in “[Requirements](#requirements)”.
+A date string is defined as a date in `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` format, similar to ISO&nbsp;8601-1 format. If the date is only given to year precision, every feature overlapping that year is included; likewise, if the date is given to month precision, every feature overlapping that month is included. Negative years are supported as described in “[Requirements](#requirements)”.
 
 ## Feedback
 
