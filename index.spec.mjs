@@ -252,6 +252,17 @@ describe('constrainLegacyFilterByDateRange', () => {
 });
 
 describe('constrainExpressionFilterByDateRange', () => {
+  it('should create a filter from scratch', () => {
+    let dateRange = {
+      startDecimalYear: 2013,
+      startISODate: '2013-01-01',
+      endDecimalYear: 2014,
+      endISODate: '2014-01-01',
+    };
+    let filter = constrainExpressionFilterByDateRange(undefined, dateRange);
+    assert.ok(Array.isArray(filter));
+  });
+
   it('should upgrade non-variable-binding filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
     let dateRange = {

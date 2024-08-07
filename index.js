@@ -137,9 +137,7 @@ function decimalYearFromDate(date) {
  *	that require the feature to overlap with the date range.
  */
 function constrainFilterByDateRange(filter, dateRange) {
-  if (typeof filter === 'undefined') {
-    return;
-  } else if (isLegacyFilter(filter)) {
+  if (typeof filter !== 'undefined' || isLegacyFilter(filter)) {
     return constrainLegacyFilterByDateRange(filter, dateRange);
   } else {
     return constrainExpressionFilterByDateRange(filter, dateRange);
@@ -231,7 +229,7 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
  * @param filter The original layer filter using the expression syntax.
  * @param dateRange The date range to filter by.
  * @returns A filter similar to the given filter, but with added conditions
- *	that require the feature to overlap with the date range. If the filter has
+ *  that require the feature to overlap with the date range. If the filter has
  *  previously been passed into this function, or if it already has a `let`
  *  expression at the top level, it merely updates a variable.
  */
@@ -240,7 +238,7 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
   const startISODateVariable = `${variablePrefix}__startISODate`;
   const endDecimalYearVariable = `${variablePrefix}__endDecimalYear`;
   const endISODateVariable = `${variablePrefix}__endISODate`;
-  if (filter[0] === 'let') {
+  if (Array.isArray(filter) && filter[0] === 'let') {
     updateVariable(filter, startDecimalYearVariable, dateRange.startDecimalYear);
     updateVariable(filter, startISODateVariable, dateRange.startISODate);
     updateVariable(filter, endDecimalYearVariable, dateRange.endDecimalYear);
@@ -286,8 +284,10 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
         ['!', ['has', 'end_date']]
       ],
     ],
-    filter,
   ];
+  if (filter) {
+    allExpression.push(filter);
+  }
 
   return [
     'let',
