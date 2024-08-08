@@ -164,8 +164,8 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
     }
     if (filter[1][2] && filter[1][2][0] === 'all' &&
         filter[1][2][2] && filter[1][2][2][0] === '<' &&
-        filter[1][2][2][1] === 'start_date') {
-      filter[1][2][2][2] = dateRange.endISODate;
+        filter[1][2][2][2] === 'start_date') {
+      filter[1][2][2][3] = dateRange.endISODate;
     }
     if (filter[2][1] && filter[2][1][0] === 'all' &&
         filter[2][1][2] && filter[2][1][2][0] === '>=' &&
@@ -174,8 +174,8 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
     }
     if (filter[2][2] && filter[2][2][0] === 'all' &&
         filter[2][2][2] && filter[2][2][2][0] === '>=' &&
-        filter[2][2][2][1] === 'end_date') {
-      filter[2][2][2][2] = dateRange.startISODate;
+        filter[2][2][2][2] === 'end_date') {
+      filter[2][2][2][3] = dateRange.startISODate;
     }
     return filter;
   }
@@ -191,6 +191,7 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
       ],
       [
         'all',
+        ['!has', 'start_decdate'],
         ['has', 'start_date'],
         ['<', 'start_date', dateRange.endISODate],
       ],
@@ -209,6 +210,7 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
       ],
       [
         'all',
+        ['!has', 'end_decdate'],
         ['has', 'end_date'],
         ['>=', 'end_date', dateRange.startISODate],
       ],
@@ -257,6 +259,7 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
       ],
       [
         'all',
+        ['!', ['has', 'start_decdate']],
         ['has', 'start_date'],
         ['<', ['get', 'start_date'], ['var', endISODateVariable]],
       ],
@@ -275,7 +278,8 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
       ],
       [
         'all',
-        ['has', 'end_decdate'],
+        ['!', ['has', 'end_decdate']],
+        ['has', 'end_date'],
         ['>=', ['get', 'end_date'], ['var', startISODateVariable]],
       ],
       [

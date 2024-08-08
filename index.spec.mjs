@@ -389,7 +389,7 @@ describe('constrainExpressionFilterByDateRange', () => {
     assert.ok(includesFeature(undefined, undefined));
     assert.ok(!includesFeature(undefined, '2013-04-13'));
     assert.ok(includesFeature('2013-04-13', undefined));
-    assert.ok(!includesFeature(undefined, '2013-04-15'), 'End date should be exclusive.');
+    assert.ok(includesFeature(undefined, '2013-04-15'));
     assert.ok(!includesFeature('2013-04-15', undefined));
   });
 });
