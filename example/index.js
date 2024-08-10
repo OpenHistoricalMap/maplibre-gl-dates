@@ -1,19 +1,15 @@
-let attribution = '<a href="https://www.openhistoricalmap.org/copyright">OpenHistoricalMap</a>';
-
 addEventListener('load', function () {
   window.map = new maplibregl.Map({
     container: 'map',
     hash: 'map',
     style: 'https://openhistoricalmap.github.io/map-styles/main/main.json',
-    attributionControl: false,
-    customAttribution: attribution,
+    attributionControl: {
+      customAttribution: '<a href="https://www.openhistoricalmap.org/">OpenHistoricalMap</a>',
+    },
   });
 
   map.addControl(new maplibregl.NavigationControl(), 'top-left');
   map.addControl(new maplibregl.FullscreenControl(), 'top-left');
-  map.addControl(new maplibregl.AttributionControl({
-    customAttribution: attribution,
-  }));
 
   map.once('styledata', function (event) {
     let params = new URLSearchParams(location.hash.substring(1));
