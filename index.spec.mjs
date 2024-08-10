@@ -6,6 +6,7 @@ import {
   dateRangeFromISODate,
   decimalYearFromDate,
   dateRangeFromDate,
+  constrainFilterByDateRange,
   constrainLegacyFilterByDateRange,
   constrainExpressionFilterByDateRange,
   isLegacyFilter,
@@ -169,6 +170,14 @@ describe('isLegacyFilter', () => {
     assert.ok(!isLegacyFilter(['all', ['has', 'start_date'], ['has', 'end_date']]));
     assert.ok(isLegacyFilter(['any', ['==', '$type', 'Polygon'], ['has', 'end_date']]));
     assert.ok(isLegacyFilter(['all', ['==', '$type', 'Polygon'], ['has', 'end_date']]));
+  });
+});
+
+describe('constrainFilterByDateRange', () => {
+  it('should upgrade nonexistent filter to expression-based filter', () => {
+    let upgraded = constrainFilterByDateRange(undefined, { startDecimalYear: 2013 });
+    assert.equal(upgraded.length, 10);
+    assert.equal(upgraded[0], 'let');
   });
 });
 

@@ -137,7 +137,7 @@ function decimalYearFromDate(date) {
  *	that require the feature to overlap with the date range.
  */
 function constrainFilterByDateRange(filter, dateRange) {
-  if (typeof filter !== 'undefined' || isLegacyFilter(filter)) {
+  if (typeof filter !== 'undefined' && isLegacyFilter(filter)) {
     return constrainLegacyFilterByDateRange(filter, dateRange);
   } else {
     return constrainExpressionFilterByDateRange(filter, dateRange);
