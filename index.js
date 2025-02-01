@@ -376,10 +376,17 @@ function updateVariable(letExpression, name, newValue) {
   }
 }
 
-if (typeof window !== 'undefined' && 'maplibregl' in window) {
-  maplibregl.Map.prototype.filterByDate = function (date) {
-    filterByDate(this, date);
-  };
+if (typeof window !== 'undefined' && ('maplibregl' in window || 'mapboxgl' in window)) {
+  if ('maplibregl' in window) {
+    maplibregl.Map.prototype.filterByDate = function (date) {
+      filterByDate(this, date);
+    };
+  }
+  if ('mapboxgl' in window) {
+    mapboxgl.Map.prototype.filterByDate = function (date) {
+      filterByDate(this, date);
+    };
+  }
 } else if (typeof module !== 'undefined') {
   module.exports = {
     filterByDate,

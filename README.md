@@ -1,10 +1,10 @@
 # MapLibre GL Dates
 
-This is a plugin for [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js/) for filtering the map based on a date. The plugin is designed for use with [OpenHistoricalMap](https://www.openhistoricalmap.org/) data.
+This is a plugin for [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) for filtering the map based on a date. The plugin is designed for use with [OpenHistoricalMap](https://www.openhistoricalmap.org/) data.
 
 ## Requirements
 
-This plugin requires [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above.
+This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above. It also works in [Mapbox GL&nbsp;JS](https://docs.mapbox.com/mapbox-gl-js/) when installed as a standalone script (without using a package manager).
 
 This plugin is able to manipulate both the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the newer [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) defined in the MapLibre Style Specification.
 
@@ -30,6 +30,8 @@ This plugin is available as [an NPM plugin](https://www.npmjs.com/package/@openh
 ```bash
 npm install @openhistoricalmap/maplibre-gl-dates
 ```
+
+Alternatively, you can include the plugin as a standalone script from a CDN such as [unpkg](https://unpkg.com/@openhistoricalmap/maplibre-gl-dates/index.js). Use this option to filter a style in Mapbox GL&nbsp;JS.
 
 ## Usage
 
