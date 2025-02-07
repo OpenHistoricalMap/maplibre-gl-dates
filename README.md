@@ -4,7 +4,7 @@ This is a plugin for [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-
 
 ## Requirements
 
-This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above. It also works in [Mapbox GL&nbsp;JS](https://docs.mapbox.com/mapbox-gl-js/) when installed as a standalone script (without using a package manager).
+This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above. It also works in [Mapbox GL&nbsp;JS](https://docs.mapbox.com/mapbox-gl-js/) when installed as a standalone script (without using a package manager). For Android applications written in Kotlin, an implementation of date filtering is available [for MapLibre Native](https://gist.github.com/nitanmarcel/aa8d148dde4fef49ff30d67d75f1709c).
 
 This plugin is able to manipulate both the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the newer [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) defined in the MapLibre Style Specification.
 
