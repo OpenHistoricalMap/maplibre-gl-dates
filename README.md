@@ -25,7 +25,7 @@ Regardless of the data type, all dates are interpreted according to the prolepti
 
 ## Installation
 
-This plugin is available as [an NPM plugin](https://www.npmjs.com/package/@openhistoricalmap/maplibre-gl-dates). To install it, run the following command:
+This plugin is available as [an NPM package](https://www.npmjs.com/package/@openhistoricalmap/maplibre-gl-dates). To install it, run the following command:
 
 ```bash
 npm install @openhistoricalmap/maplibre-gl-dates
