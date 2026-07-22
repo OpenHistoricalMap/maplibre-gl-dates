@@ -219,7 +219,7 @@ describe('constrainLegacyFilterByDateRange', () => {
       if (typeof end !== 'undefined') {
         properties.end_decdate = end;
       }
-      return featureFilter(upgraded).filter(undefined, { properties: properties });
+      return featureFilter(upgraded, 'layers[0].filter').filter(undefined, { properties: properties });
     };
 
     assert.ok(includesFeature(undefined, undefined));
@@ -249,7 +249,7 @@ describe('constrainLegacyFilterByDateRange', () => {
       if (typeof end !== 'undefined') {
         properties.end_date = end;
       }
-      return featureFilter(upgraded).filter(undefined, { properties: properties });
+      return featureFilter(upgraded, 'layers[0].filter').filter(undefined, { properties: properties });
     };
 
     assert.ok(includesFeature(undefined, undefined));
@@ -362,7 +362,7 @@ describe('constrainExpressionFilterByDateRange', () => {
       if (typeof end !== 'undefined') {
         properties.end_decdate = end;
       }
-      return featureFilter(upgraded).filter(undefined, { properties: properties });
+      return featureFilter(upgraded, 'layers[0].filter').filter(undefined, { properties: properties });
     };
 
     assert.ok(includesFeature(undefined, undefined));
@@ -392,7 +392,7 @@ describe('constrainExpressionFilterByDateRange', () => {
       if (typeof end !== 'undefined') {
         properties.end_date = end;
       }
-      return featureFilter(upgraded).filter(undefined, { properties: properties });
+      return featureFilter(upgraded, 'layers[0].filter').filter(undefined, { properties: properties });
     };
 
     assert.ok(includesFeature(undefined, undefined));
