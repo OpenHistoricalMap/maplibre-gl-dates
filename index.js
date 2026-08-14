@@ -7,7 +7,7 @@ const variablePrefix = 'maplibre_gl_dates';
  * @param map The MapboxGL map object to filter the style of.
  * @param date The date object or date string to filter by.
  */
-function filterByDate(map, date) {
+export function filterByDate(map, date) {
   let dateRange = dateRangeFromDate(date);
   map.getStyle().layers.map(function (layer) {
     if (!('source-layer' in layer)) return;
@@ -23,7 +23,7 @@ function filterByDate(map, date) {
  * @param date A date object or date string in ISO 8601-1 format.
  * @returns A date range object.
  */
-function dateRangeFromDate(date) {
+export function dateRangeFromDate(date) {
   let dateRange;
   if (typeof date === 'string') {
     dateRange = dateRangeFromISODate(date);
@@ -49,7 +49,7 @@ function dateRangeFromDate(date) {
  * @returns A date range object indicating the minimum (inclusive) and maximum
  *  (exclusive) possible dates represented by the given date string.
  */
-function dateRangeFromISODate(isoDate) {
+export function dateRangeFromISODate(isoDate) {
   // Require a valid YYYY, YYYY-MM, or YYYY-MM-DD date, but allow the year
   // to be a variable number of digits or negative, unlike ISO 8601-1.
   if (!isoDate || !/^-?\d{1,4}(?:-\d\d){0,2}$/.test(isoDate)) return;
@@ -115,7 +115,7 @@ function dateFromUTC(year, month, day) {
  * @param date A date object.
  * @returns A floating point number of years since year 0.
  */
-function decimalYearFromDate(date) {
+export function decimalYearFromDate(date) {
   // Add the year and the fraction of the date between two New Year’s Days.
   let year = date.getUTCFullYear();
   let nextNewYear = dateFromUTC(year + 1, 0, 1).getTime();
@@ -132,7 +132,7 @@ function decimalYearFromDate(date) {
  * @returns A filter similar to the given filter, but with added conditions
  *	that require the feature to overlap with the date range.
  */
-function constrainFilterByDateRange(filter, dateRange) {
+export function constrainFilterByDateRange(filter, dateRange) {
   if (typeof filter !== 'undefined' && isLegacyFilter(filter)) {
     return constrainLegacyFilterByDateRange(filter, dateRange);
   } else {
@@ -150,7 +150,7 @@ function constrainFilterByDateRange(filter, dateRange) {
  *	that require the feature to overlap with the date range. If the filter has
  *  previously been passed into this function, it surgically updates the filter.
  */
-function constrainLegacyFilterByDateRange(filter, dateRange) {
+export function constrainLegacyFilterByDateRange(filter, dateRange) {
   if (filter[0] === 'all' &&
       filter[2] && filter[1][0] === 'any' && filter[2][0] === 'any') {
     if (filter[1][1] && filter[1][1][0] === 'all' &&
@@ -231,7 +231,7 @@ function constrainLegacyFilterByDateRange(filter, dateRange) {
  *  previously been passed into this function, or if it already has a `let`
  *  expression at the top level, it merely updates a variable.
  */
-function constrainExpressionFilterByDateRange(filter, dateRange) {
+export function constrainExpressionFilterByDateRange(filter, dateRange) {
   const startDecimalYearVariable = `${variablePrefix}__startDecimalYear`;
   const startISODateVariable = `${variablePrefix}__startISODate`;
   const endDecimalYearVariable = `${variablePrefix}__endDecimalYear`;
@@ -305,7 +305,7 @@ function constrainExpressionFilterByDateRange(filter, dateRange) {
  * @param filter A filter that is either based on the legacy syntax or an expression.
  * @returns True if the filter is definitely based on the legacy syntax; false if it might be an expression.
  */
-function isLegacyFilter(filter) {
+export function isLegacyFilter(filter) {
   if (!Array.isArray(filter) || filter.length < 2) {
     return false;
   }
@@ -359,7 +359,7 @@ function isLegacyFilter(filter) {
  * @param name The name of the variable to mutate.
  * @param newValue The variable’s new value.
  */
-function updateVariable(letExpression, name, newValue) {
+export function updateVariable(letExpression, name, newValue) {
   if (letExpression[0] !== 'let') {
     return;
   }
@@ -383,16 +383,4 @@ if (typeof window !== 'undefined' && ('maplibregl' in window || 'mapboxgl' in wi
       filterByDate(this, date);
     };
   }
-} else if (typeof module !== 'undefined') {
-  module.exports = {
-    filterByDate,
-    dateRangeFromDate,
-    decimalYearFromDate,
-    dateRangeFromISODate,
-    constrainFilterByDateRange,
-    constrainLegacyFilterByDateRange,
-    constrainExpressionFilterByDateRange,
-    isLegacyFilter,
-    updateVariable,
-  };
 }
