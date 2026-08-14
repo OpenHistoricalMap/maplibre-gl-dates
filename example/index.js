@@ -2,7 +2,7 @@ addEventListener('load', function () {
   window.map = new maplibregl.Map({
     container: 'map',
     hash: 'map',
-    style: 'https://openhistoricalmap.github.io/map-styles/main/main.json',
+    style: 'https://www.openhistoricalmap.org/map-styles/historical/historical.json',
     attributionControl: {
       customAttribution: '<a href="https://www.openhistoricalmap.org/">OpenHistoricalMap</a>',
     },
