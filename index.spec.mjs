@@ -62,21 +62,21 @@ describe('dateRangeFromISODate', () => {
   it('should support imprecise BCE dates', () => {
     let yearPrecision = dateRangeFromISODate('-0048');
     assert.equal(+yearPrecision.startDate, +new Date('-000048-01-01T00:00:00Z'));
-    assert.equal(+yearPrecision.startDecimalYear.toFixed(5), -49);
+    assert.equal(+yearPrecision.startDecimalYear.toFixed(5), -48);
     assert.equal(+yearPrecision.endDate, +new Date('-000047-01-01T00:00:00Z'));
-    assert.equal(+yearPrecision.endDecimalYear.toFixed(5), -48);
+    assert.equal(+yearPrecision.endDecimalYear.toFixed(5), -47);
 
     let monthPrecision = dateRangeFromISODate('-0048-01');
     assert.equal(+monthPrecision.startDate, +new Date('-000048-01-01T00:00:00Z'));
-    assert.equal(+monthPrecision.startDecimalYear.toFixed(5), -49);
+    assert.equal(+monthPrecision.startDecimalYear.toFixed(5), -48);
     assert.equal(+monthPrecision.endDate, +new Date('-000048-02-01T00:00:00Z'));
-    assert.equal(+monthPrecision.endDecimalYear.toFixed(5), -48.9153);
+    assert.equal(+monthPrecision.endDecimalYear.toFixed(5), -47.9153);
 
     let dayPrecision = dateRangeFromISODate('-0048-01-01');
     assert.equal(+dayPrecision.startDate, +new Date('-000048-01-01T00:00:00Z'));
-    assert.equal(+dayPrecision.startDecimalYear.toFixed(5), -49);
+    assert.equal(+dayPrecision.startDecimalYear.toFixed(5), -48);
     assert.equal(+dayPrecision.endDate, +new Date('-000048-01-01T00:00:00Z'));
-    assert.equal(+dayPrecision.endDecimalYear.toFixed(5), -49);
+    assert.equal(+dayPrecision.endDecimalYear.toFixed(5), -48);
   });
 });
 
@@ -90,8 +90,9 @@ describe('decimalYearFromDate', () => {
   it('should support BCE dates', () => {
     assert.equal(decimalYearFromDate(new Date('0001-01-01')), 1);
     assert.equal(decimalYearFromDate(new Date('0000-01-01')), 0);
-    assert.equal(decimalYearFromDate(new Date('-000001-01-01')), -2);
-    assert.equal(decimalYearFromDate(new Date('-009999-01-01')), -10000);
+    assert.equal(decimalYearFromDate(new Date('-000001-01-01')), -1);
+    assert.equal(decimalYearFromDate(new Date('-009999-01-01')), -9999);
+    assert.equal(decimalYearFromDate(new Date('-010000-01-01')), -10000);
   });
 });
 

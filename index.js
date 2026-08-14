@@ -120,10 +120,6 @@ function decimalYearFromDate(date) {
   let year = date.getUTCFullYear();
   let nextNewYear = dateFromUTC(year + 1, 0, 1).getTime();
   let lastNewYear = dateFromUTC(year, 0, 1).getTime();
-  if (year < 0) {
-    // New Year’s 1 BCE is closer to -2 than -1.
-    year--;
-  }
   return year + (date.getTime() - lastNewYear) / (nextNewYear - lastNewYear);
 }
 
