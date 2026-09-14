@@ -35,11 +35,17 @@ Alternatively, you can include the plugin as a standalone script from a CDN such
 
 ## Usage
 
+Import MapLibre GL Dates as a module:
+
+```js
+import { filterByDate } from "@openhistoricalmap/maplibre-gl-dates";
+```
+
 After creating an instance of `maplibregl.Map`, register an event listener for the `styledata` event that filters the map: 
 
 ```js
 map.once('styledata', function (event) {
-  map.filterByDate('2013-04-14');
+  filterByDate(map, '2013-04-14');
 });
 ```
 
@@ -49,7 +55,7 @@ If you set the `hash` option to a string when creating the `Map`, you can have t
 map.once('styledata', function (event) {
   let params = new URLSearchParams(location.hash.substring(1));
   let date = params.get('date') || new Date();
-  map.filterByDate(date);
+  filterByDate(map, date);
 });
 ```
 
@@ -62,7 +68,7 @@ addEventListener('hashchange', function (event) {
   let oldDate = oldParams.get('date') || new Date();
   let newDate = newParams.get('date') || new Date();
   if (oldDate !== newDate) {
-    map.filterByDate(newDate);
+    filterByDate(map, newDate);
   }
 });
 ```

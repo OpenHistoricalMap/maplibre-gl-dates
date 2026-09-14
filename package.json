@@ -2,6 +2,10 @@
   "name": "@openhistoricalmap/maplibre-gl-dates",
   "version": "1.4.0",
   "description": "MapLibre GL JS plugin for filtering the map based on a date",
+  "type": "module",
+  "files": [
+    "dist/"
+  ],
   "main": "index.js",
   "scripts": {
     "build": "esbuild index.js --bundle --minify --sourcemap --outdir=dist",

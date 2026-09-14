@@ -1,3 +1,6 @@
+import * as maplibregl from "https://unpkg.com/maplibre-gl@%5E6.0.0/dist/maplibre-gl.mjs";
+import { filterByDate } from "../index.js";
+
 addEventListener('load', function () {
   window.map = new maplibregl.Map({
     container: 'map',
