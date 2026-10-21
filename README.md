@@ -4,9 +4,9 @@ This is a plugin for [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-
 
 ## Requirements
 
-This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above. It also works in [Mapbox GL&nbsp;JS](https://docs.mapbox.com/mapbox-gl-js/) when installed as a standalone script (without using a package manager). For Android applications written in Kotlin, an implementation of date filtering is available [for MapLibre Native](https://gist.github.com/nitanmarcel/aa8d148dde4fef49ff30d67d75f1709c).
+This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v5.6.0 and above. For Android applications written in Kotlin, an implementation of date filtering is available [for MapLibre Native](https://gist.github.com/nitanmarcel/aa8d148dde4fef49ff30d67d75f1709c).
 
-This plugin is able to manipulate both the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the newer [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) defined in the MapLibre Style Specification.
+This plugin only manipulates [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) as defined in the MapLibre Style Specification. Support for the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the [Mapbox Style Specification](https://docs.mapbox.com/style-spec/guides/) was discontinued in v2.0.0.
 
 The stylesheet must be backed by a vector tileset, such as [OpenHistoricalMap’s official vector tileset](https://wiki.openstreetmap.org/wiki/OpenHistoricalMap/Reuse#Vector_tiles_and_stylesheets), that includes the following properties in each tile layer:
 
@@ -31,7 +31,7 @@ This plugin is available as [an NPM package](https://www.npmjs.com/package/@open
 npm install @openhistoricalmap/maplibre-gl-dates
 ```
 
-Alternatively, you can include the plugin as a standalone script from a CDN such as [unpkg](https://unpkg.com/@openhistoricalmap/maplibre-gl-dates/index.js). Use this option to filter a style in Mapbox GL&nbsp;JS.
+Alternatively, you can include the plugin as a standalone script from a CDN such as [unpkg](https://unpkg.com/@openhistoricalmap/maplibre-gl-dates/index.js).
 
 ## Usage
 
@@ -69,11 +69,13 @@ addEventListener('hashchange', function (event) {
 
 ## API
 
-This plugin adds a single method to each instance of `maplibregl.Map`.
+This plugin adds methods to each instance of `maplibregl.Map`.
 
 ### `filterByDate`
 
 Filters the map’s features by a date.
+
+This function constrains each of the style layers to the global state, unless the global state already contains a date range, suggesting that the layers have already been constrained.
 
 Parameters:
 
@@ -82,6 +84,14 @@ Parameter | Type | Description
 `date` | `Date` or date string | The date to filter by.
 
 A date string is defined as a date in `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` format, similar to ISO&nbsp;8601-1 format. If the date is only given to year precision, every feature overlapping that year is included; likewise, if the date is given to month precision, every feature overlapping that month is included. Negative years are supported as described in “[Requirements](#requirements)”.
+
+### `constrainStyleToDateRange`
+
+Modifies the map’s style, conditioning the filter of every layer on whether the feature properties overlap with the global date range.
+
+The resulting filters only work if you call [`filterByDate()`](#filterbydate) before or after.
+
+If this function has already been called, calling it a second time results in more complex filters for no good reason. To update the date range, call [`filterByDate()`](#filterbydate).
 
 ## Feedback
 
