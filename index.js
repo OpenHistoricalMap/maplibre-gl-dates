@@ -19,12 +19,7 @@ function filterByDate(map, date) {
   const dateRange = dateRangeFromDate(date);
   const globalState = map.getGlobalState();
   if (!(startISODateVariable in globalState || endISODateVariable in globalState)) {
-    map.getStyle().layers.map(function (layer) {
-      if (!('source-layer' in layer)) return;
-
-      let filter = constrainFilter(map.getFilter(layer.id));
-      map.setFilter(layer.id, filter);
-    });
+    constrainStyleToDateRange(map);
   }
   map.setGlobalStateProperty(startDecimalYearVariable, dateRange.startDecimalYear);
   map.setGlobalStateProperty(startISODateVariable, dateRange.startISODate);
@@ -139,6 +134,27 @@ function decimalYearFromDate(date) {
 }
 
 /**
+ * Modifies the map’s style, conditioning the filter of every layer on whether
+ * the feature properties overlap with the global date range.
+ * 
+ * The resulting filters only work if you call `filterByDate()` before or after.
+ *
+ * If this function has already been called, calling it a second time results
+ * in more complex filters for no good reason. To update the date range, call
+ * `filterByDate()`.
+ *
+ * @param map The MapLibre map object containing the style.
+ */
+function constrainStyleToDateRange(map) {
+  map.getStyle().layers.map(function (layer) {
+    if (!('source-layer' in layer)) return;
+
+    let filter = constrainLayerToDateRange(map.getFilter(layer.id));
+    map.setFilter(layer.id, filter);
+  });
+}
+
+/**
  * Returns a modified version of the given filter that only evaluates to
  * true if the feature overlaps with the global date range.
  * 
@@ -152,7 +168,7 @@ function decimalYearFromDate(date) {
  * @returns A filter similar to the given filter, but with added conditions
  *	that require the feature to overlap with the date range.
  */
-function constrainFilter(filter) {
+function constrainLayerToDateRange(filter) {
   const startConstraint = [
     'case',
     ['==', null, ['global-state', endDecimalYearVariable]],
@@ -209,6 +225,7 @@ if (typeof window !== 'undefined' && 'maplibregl' in window) {
     dateRangeFromDate,
     decimalYearFromDate,
     dateRangeFromISODate,
-    constrainFilter,
+    constrainStyleToDateRange,
+    constrainLayerToDateRange,
   };
 }

@@ -69,11 +69,13 @@ addEventListener('hashchange', function (event) {
 
 ## API
 
-This plugin adds a single method to each instance of `maplibregl.Map`.
+This plugin adds methods to each instance of `maplibregl.Map`.
 
 ### `filterByDate`
 
 Filters the map’s features by a date.
+
+This function constrains each of the style layers to the global state, unless the global state already contains a date range, suggesting that the layers have already been constrained.
 
 Parameters:
 
@@ -82,6 +84,14 @@ Parameter | Type | Description
 `date` | `Date` or date string | The date to filter by.
 
 A date string is defined as a date in `YYYY`, `YYYY-MM`, or `YYYY-MM-DD` format, similar to ISO&nbsp;8601-1 format. If the date is only given to year precision, every feature overlapping that year is included; likewise, if the date is given to month precision, every feature overlapping that month is included. Negative years are supported as described in “[Requirements](#requirements)”.
+
+### `constrainStyleToDateRange`
+
+Modifies the map’s style, conditioning the filter of every layer on whether the feature properties overlap with the global date range.
+
+The resulting filters only work if you call [`filterByDate()`](#filterbydate) before or after.
+
+If this function has already been called, calling it a second time results in more complex filters for no good reason. To update the date range, call [`filterByDate()`](#filterbydate).
 
 ## Feedback
 

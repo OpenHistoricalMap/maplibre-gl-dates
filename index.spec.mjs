@@ -7,7 +7,7 @@ import {
   dateRangeFromISODate,
   decimalYearFromDate,
   dateRangeFromDate,
-  constrainFilter,
+  constrainLayerToDateRange,
 } from './index.js';
 
 const startDecimalYearVariable = 'maplibre_gl_dates__startDecimalYear';
@@ -145,9 +145,9 @@ describe('dateRangeFromDate', () => {
   });
 });
 
-describe('constrainFilter', () => {
+describe('constrainLayerToDateRange', () => {
   it('should create a filter from scratch', () => {
-    let filter = constrainFilter(undefined);
+    let filter = constrainLayerToDateRange(undefined);
     assert.ok(Array.isArray(filter));
     assert.equal(filter.length, 3);
     assert.equal(filter[0], 'all');
@@ -155,7 +155,7 @@ describe('constrainFilter', () => {
 
   it('should upgrade filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainFilter(structuredClone(original));
+    let upgraded = constrainLayerToDateRange(structuredClone(original));
     assert.equal(upgraded.length, 4);
     assert.equal(upgraded[0], 'all');
     let startDecimalYearVariable = 'maplibre_gl_dates__startDecimalYear';
@@ -167,8 +167,8 @@ describe('constrainFilter', () => {
 
   it('should upgrade already upgraded filter', () => {
     let original = ['match', ['get', 'class'], ['primary', 'secondary', 'tertiary'], true, false];
-    let upgraded = constrainFilter(structuredClone(original));
-    let reupgraded = constrainFilter(structuredClone(upgraded));
+    let upgraded = constrainLayerToDateRange(structuredClone(original));
+    let reupgraded = constrainLayerToDateRange(structuredClone(upgraded));
     assert.equal(upgraded.length, reupgraded.length);
     assert.equal(reupgraded[0], 'all');
     assert.deepEqual(upgraded[1], reupgraded[1]);
@@ -185,7 +185,7 @@ describe('constrainFilter', () => {
     globalState[endDecimalYearVariable] = startDecimalYear + dayDelta;
     globalState[endISODateVariable] = '2013-07-03';
 
-    let upgraded = constrainFilter(['has', 'building']);
+    let upgraded = constrainLayerToDateRange(['has', 'building']);
 
     let includesFeature = (start, end) => {
       let properties = { building: 'yes' };
@@ -216,7 +216,7 @@ describe('constrainFilter', () => {
     globalState[endDecimalYearVariable] = startDecimalYear + dayDelta;
     globalState[endISODateVariable] = '2013-04-15';
 
-    let upgraded = constrainFilter(['has', 'building']);
+    let upgraded = constrainLayerToDateRange(['has', 'building']);
 
     let includesFeature = (start, end) => {
       let properties = { building: 'yes' };
