@@ -4,9 +4,9 @@ This is a plugin for [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-
 
 ## Requirements
 
-This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v3.0.0 and above. It also works in [Mapbox GL&nbsp;JS](https://docs.mapbox.com/mapbox-gl-js/) when installed as a standalone script (without using a package manager). For Android applications written in Kotlin, an implementation of date filtering is available [for MapLibre Native](https://gist.github.com/nitanmarcel/aa8d148dde4fef49ff30d67d75f1709c).
+This plugin requires [MapLibre GL&nbsp;JS](https://github.com/maplibre/maplibre-gl-js/) v5.6.0 and above. For Android applications written in Kotlin, an implementation of date filtering is available [for MapLibre Native](https://gist.github.com/nitanmarcel/aa8d148dde4fef49ff30d67d75f1709c).
 
-This plugin is able to manipulate both the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the newer [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) defined in the MapLibre Style Specification.
+This plugin only manipulates [expression syntax](https://maplibre.org/maplibre-style-spec/expressions/) as defined in the MapLibre Style Specification. Support for the deprecated [legacy filter syntax](https://maplibre.org/maplibre-style-spec/deprecations/#other-filter) and the [Mapbox Style Specification](https://docs.mapbox.com/style-spec/guides/) was discontinued in v2.0.0.
 
 The stylesheet must be backed by a vector tileset, such as [OpenHistoricalMap’s official vector tileset](https://wiki.openstreetmap.org/wiki/OpenHistoricalMap/Reuse#Vector_tiles_and_stylesheets), that includes the following properties in each tile layer:
 
@@ -31,7 +31,7 @@ This plugin is available as [an NPM package](https://www.npmjs.com/package/@open
 npm install @openhistoricalmap/maplibre-gl-dates
 ```
 
-Alternatively, you can include the plugin as a standalone script from a CDN such as [unpkg](https://unpkg.com/@openhistoricalmap/maplibre-gl-dates/index.js). Use this option to filter a style in Mapbox GL&nbsp;JS.
+Alternatively, you can include the plugin as a standalone script from a CDN such as [unpkg](https://unpkg.com/@openhistoricalmap/maplibre-gl-dates/index.js).
 
 ## Usage
 
